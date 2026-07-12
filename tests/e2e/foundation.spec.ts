@@ -46,7 +46,24 @@ test("a new user can register, create an organisation, and reach the workspace",
   expect(reviewResponse.status()).toBe(201);
   expect((await reviewResponse.json()).data.review.status).toBe("published");
 
-  for (const path of ["/dashboard", "/evidence", "/community"]) {
+  const mcpResponse = await page.request.post("/api/v1/mcp-servers", { data: { name: `Secure Git MCP ${Date.now()}`, description: "A constrained repository inspection server used by the Phase 3 end-to-end test.", repositoryUrl: "https://github.com/example/secure-git-mcp", openSource: true, maintainer: "Example Maintainers", documentationUrl: "https://example.com/docs", packageIdentifier: `npm:@example/secure-git-mcp-${Date.now()}`, transports: ["stdio", "http"], permissions: { filesystem: [{ path: "./repository", access: "read" }], network: [{ host: "api.github.com", ports: [443] }] }, authenticationMethods: ["oauth2"], secretsRequired: ["GITHUB_TOKEN"], oauthSupported: true, sandboxCompatible: true, enterpriseReady: true, maintenanceStatus: "active" } });
+  expect(mcpResponse.status()).toBe(201);
+  const mcp = (await mcpResponse.json()).data;
+  expect(mcp.permissionRisk.level).toBe("low");
+  expect((await page.request.post(`/api/v1/mcp-servers/${mcp.profile.id}/releases`, { data: { version: "1.0.0", releaseUrl: "https://example.com/releases/1.0.0", signatureVerified: true, publishedAt: new Date().toISOString() } })).status()).toBe(201);
+  expect((await page.request.post(`/api/v1/mcp-servers/${mcp.profile.id}/dependencies`, { data: { ecosystem: "npm", packageName: "@modelcontextprotocol/sdk", versionRange: "^1.29.0", direct: true } })).status()).toBe(201);
+
+  expect((await page.request.post("/api/v1/skills", { data: { name: `Trust Review Skill ${Date.now()}`, format: "custom", capabilities: ["trust-score-explanation"], permissions: {}, compatibleHosts: ["TrustForge"], openSource: true } })).status()).toBe(201);
+  expect((await page.request.post("/api/v1/agents", { data: { name: `Procurement Agent ${Date.now()}`, capabilities: ["vendor-comparison"], permissions: { network: [{ host: "trustforge.example", ports: [443] }] }, autonomyLevel: 2, deploymentModes: ["self_hosted"], modelDependencies: ["provider:model"], openSource: false } })).status()).toBe(201);
+  expect((await page.request.post("/api/v1/models", { data: { name: `Evidence Model ${Date.now()}`, family: "Evidence", providerModelId: `evidence-${Date.now()}`, modalities: ["text"], contextWindow: 128000, openWeights: false, openSource: false } })).status()).toBe(201);
+  expect((await page.request.post("/api/v1/apis", { data: { name: `Evidence API ${Date.now()}`, baseUrl: `https://api-${Date.now()}.example.com`, authenticationMethods: ["oauth2"], protocols: ["https"], dataResidencyRegions: ["AU"], retentionSummary: "No request retention.", trainingUsage: "Requests are not used for training.", openSource: false } })).status()).toBe(201);
+
+  const graphqlResponse = await page.request.post("/api/graphql", { data: { query: "query($q: String!) { search(query: $q, limit: 5) { name type verificationLevel } }", variables: { q: "Secure Git MCP" } } });
+  expect(graphqlResponse.status()).toBe(200);
+  expect(JSON.stringify(await graphqlResponse.json())).toContain("Secure Git MCP");
+  expect((await page.request.get("/api/trpc/health")).status()).toBe(200);
+
+  for (const path of ["/dashboard", "/evidence", "/community", "/mcp-servers"]) {
     await page.goto(path);
     const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
     expect(accessibility.violations, `${path}: ${JSON.stringify(accessibility.violations, null, 2)}`).toEqual([]);

@@ -5,3 +5,4 @@ export * from "./registry";
 export * from "./audit";
 export * from "./verification";
 export * from "./community";
+export * from "./ecosystem";

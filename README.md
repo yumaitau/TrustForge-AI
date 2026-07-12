@@ -10,7 +10,7 @@ Requirements: Node.js 20+, npm, and Docker.
 
 ```bash
 cp .env.example .env.local
-docker compose up -d
+docker compose up -d postgres redis object-storage
 npm install
 npm run db:generate
 npm run db:migrate
@@ -18,6 +18,14 @@ npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
+
+To run the complete containerized web and MCP stack after migrating the database:
+
+```bash
+docker compose up --build
+```
+
+The MCP Streamable HTTP endpoint is then available at `http://localhost:3100/mcp` and requires `MCP_API_TOKEN`.
 
 ## Quality checks
 
@@ -39,5 +47,7 @@ npm run build
 - [API conventions](docs/api.md)
 - [Verification methodology](docs/verification-methodology.md)
 - [Community and reputation](docs/community-and-reputation.md)
+- [AI ecosystem registries](docs/ecosystem-registry.md)
+- [MCP server and client](docs/mcp.md)
 
 The GitHub Issues roadmap is the living source of delivery work. `docs/roadmap.md` defines the phase taxonomy and roadmap maintenance policy.

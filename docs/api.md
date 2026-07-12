@@ -9,3 +9,5 @@
 - GraphQL, tRPC, and MCP adapters must call the same application services rather than duplicate business rules.
 
 The machine-readable contract is published at `/openapi.yaml`.
+
+Public GraphQL queries are served at `/api/graphql`. First-party type-safe procedures are served below `/api/trpc`. Both compose the same repository and trust services used by REST and MCP.

@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, ilike, isNull, or } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, isNull, or, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { companies, products } from "@/db/schema";
 import { db } from "@/lib/db/client";
@@ -6,10 +6,12 @@ import { canonicalSlug, type CompanyInput, type ProductInput } from "./schemas";
 
 const boundedLimit = (limit?: number) => Math.min(Math.max(limit ?? 20, 1), 100);
 
-export async function listCompanies(input: { query?: string; cursor?: string; limit?: number } = {}) {
+export async function listCompanies(input: { query?: string; countryCode?: string; verified?: boolean; cursor?: string; limit?: number } = {}) {
   const filters = [isNull(companies.deletedAt)];
   if (input.cursor) filters.push(gt(companies.id, input.cursor));
   if (input.query) filters.push(or(ilike(companies.displayName, `%${input.query}%`), ilike(companies.legalName, `%${input.query}%`))!);
+  if (input.countryCode) filters.push(eq(companies.countryCode, input.countryCode.toUpperCase()));
+  if (input.verified) filters.push(sql`${companies.verificationLevel} <> 'unverified'`);
   const limit = boundedLimit(input.limit);
   const rows = await db.select().from(companies).where(and(...filters)).orderBy(asc(companies.id)).limit(limit + 1);
   return { items: rows.slice(0, limit), nextCursor: rows.length > limit ? rows[limit - 1]?.id ?? null : null };
@@ -26,11 +28,13 @@ export async function createCompany(input: CompanyInput, claimedByOrganisationId
   return company;
 }
 
-export async function listProducts(input: { query?: string; type?: ProductInput["type"]; cursor?: string; limit?: number } = {}) {
+export async function listProducts(input: { query?: string; type?: ProductInput["type"]; openSource?: boolean; verified?: boolean; cursor?: string; limit?: number } = {}) {
   const filters = [isNull(products.deletedAt)];
   if (input.cursor) filters.push(gt(products.id, input.cursor));
   if (input.query) filters.push(ilike(products.name, `%${input.query}%`));
   if (input.type) filters.push(eq(products.type, input.type));
+  if (input.openSource !== undefined) filters.push(eq(products.openSource, input.openSource));
+  if (input.verified) filters.push(sql`${products.verificationLevel} <> 'unverified'`);
   const limit = boundedLimit(input.limit);
   const rows = await db.select().from(products).where(and(...filters)).orderBy(asc(products.id)).limit(limit + 1);
   return { items: rows.slice(0, limit), nextCursor: rows.length > limit ? rows[limit - 1]?.id ?? null : null };

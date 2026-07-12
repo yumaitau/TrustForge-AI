@@ -9,12 +9,12 @@ export async function GET(request: NextRequest) {
   const type = params.get("type");
   const verified = params.get("verified") === "true";
   const [companyResult, productResult] = await Promise.all([
-    type && type !== "company" ? Promise.resolve({ items: [] }) : listCompanies({ query, limit: 25 }),
-    type === "company" ? Promise.resolve({ items: [] }) : listProducts({ query, type: productTypes.find((item) => item === type), limit: 25 }),
+    type && type !== "company" ? Promise.resolve({ items: [] }) : listCompanies({ query, countryCode: params.get("countryCode") ?? undefined, verified, limit: 25 }),
+    type === "company" ? Promise.resolve({ items: [] }) : listProducts({ query, type: productTypes.find((item) => item === type), openSource: params.has("openSource") ? params.get("openSource") === "true" : undefined, verified, limit: 25 }),
   ]);
   const data = [
     ...companyResult.items.map((item) => ({ id: item.id, slug: item.slug, name: item.displayName, type: "company", verificationLevel: item.verificationLevel, description: item.description })),
     ...productResult.items.map((item) => ({ id: item.id, slug: item.slug, name: item.name, type: item.type, verificationLevel: item.verificationLevel, description: item.description })),
-  ].filter((item) => !verified || item.verificationLevel !== "unverified");
+  ];
   return NextResponse.json({ data, meta: { query, count: data.length } });
 }

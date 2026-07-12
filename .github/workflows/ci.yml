@@ -46,6 +46,8 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run db:migrate
+      - run: npm run mcp:build
+      - run: npm run mcp:smoke
       - run: npm run build
       - name: Install browser for end-to-end tests
         run: npx playwright install --with-deps chromium
@@ -75,5 +77,13 @@ jobs:
           context: .
           push: false
           tags: trustforge-ai:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: Dockerfile.mcp
+          push: false
+          tags: trustforge-mcp:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max

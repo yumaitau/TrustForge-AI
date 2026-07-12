@@ -139,6 +139,29 @@ paths:
         - { in: path, name: subjectId, required: true, schema: { type: string, format: uuid } }
       responses:
         "200": { description: Current score and history }
+  /mcp-servers:
+    get:
+      operationId: listMcpServers
+      summary: Find MCP servers with transport and readiness filters
+      responses:
+        "200": { description: MCP server profiles with permission risk and Trust Scores }
+    post:
+      operationId: createMcpServer
+      summary: Register an MCP server and its explicit permissions
+      responses:
+        "201": { description: MCP server registered }
+  /skills:
+    get: { operationId: listSkills, summary: List AI skills, responses: { "200": { description: Skill profiles } } }
+    post: { operationId: createSkill, summary: Register an AI skill, responses: { "201": { description: Skill registered } } }
+  /agents:
+    get: { operationId: listAgents, summary: List AI agents, responses: { "200": { description: Agent profiles } } }
+    post: { operationId: createAgent, summary: Register an AI agent, responses: { "201": { description: Agent registered } } }
+  /models:
+    get: { operationId: listModels, summary: List AI models, responses: { "200": { description: Model profiles } } }
+    post: { operationId: createModel, summary: Register an AI model, responses: { "201": { description: Model registered } } }
+  /apis:
+    get: { operationId: listApis, summary: List AI APIs, responses: { "200": { description: API profiles } } }
+    post: { operationId: createApi, summary: Register an AI API, responses: { "201": { description: API registered } } }
 components:
   schemas:
     ProductType:

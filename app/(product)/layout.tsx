@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Database, FileCheck2, LayoutDashboard, MessageSquare, Search, Settings, ShieldCheck } from "lucide-react";
+import { Blocks, Database, FileCheck2, LayoutDashboard, MessageSquare, Search, Settings, ShieldCheck } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { organisations } from "@/db/schema";
@@ -10,6 +10,7 @@ import { requirePageSession } from "@/lib/auth/session";
 const navigation = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/registry", label: "Registry", icon: Database },
+  { href: "/mcp-servers", label: "MCP servers", icon: Blocks },
   { href: "/search", label: "Search", icon: Search },
   { href: "/evidence", label: "Evidence", icon: FileCheck2 },
   { href: "/community", label: "Community", icon: MessageSquare },
