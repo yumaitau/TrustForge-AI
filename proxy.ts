@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-const protectedPaths = ["/dashboard", "/admin", "/settings"];
+const protectedPaths = ["/dashboard", "/registry", "/search", "/admin", "/settings"];
 
 export default function proxy(request: NextRequest) {
   const protectedPath = protectedPaths.some((path) => request.nextUrl.pathname.startsWith(path));

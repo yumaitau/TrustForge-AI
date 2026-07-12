@@ -35,5 +35,7 @@ npm run build
 - [Trust methodology](docs/trust-methodology.md)
 - [Security model](docs/security/threat-model.md)
 - [Roadmap](docs/roadmap.md)
+- [Authentication and identity](docs/authentication.md)
+- [API conventions](docs/api.md)
 
 The GitHub Issues roadmap is the living source of delivery work. `docs/roadmap.md` defines the phase taxonomy and roadmap maintenance policy.

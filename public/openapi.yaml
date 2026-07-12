@@ -22,3 +22,69 @@ paths:
                   status: { type: string, const: ok }
                   service: { type: string }
                   timestamp: { type: string, format: date-time }
+  /companies:
+    get:
+      operationId: listCompanies
+      summary: List or search companies
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: cursor, schema: { type: string, format: uuid } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200": { description: Company page }
+    post:
+      operationId: createCompany
+      summary: Create a company from an authorised organisation
+      responses:
+        "201": { description: Company created }
+        "401": { description: Authentication required }
+        "403": { description: Permission denied }
+  /companies/{id}:
+    get:
+      operationId: getCompany
+      summary: Get a company by UUID or slug
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Company }
+        "404": { description: Company not found }
+  /products:
+    get:
+      operationId: listProducts
+      summary: List or search typed AI products
+      parameters:
+        - { in: query, name: q, schema: { type: string } }
+        - { in: query, name: type, schema: { $ref: "#/components/schemas/ProductType" } }
+        - { in: query, name: cursor, schema: { type: string, format: uuid } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+      responses:
+        "200": { description: Product page }
+    post:
+      operationId: createProduct
+      summary: Create a typed AI product
+      responses:
+        "201": { description: Product created }
+  /products/{id}:
+    get:
+      operationId: getProduct
+      summary: Get a product by UUID or slug
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string } }
+      responses:
+        "200": { description: Product }
+        "404": { description: Product not found }
+  /search:
+    get:
+      operationId: searchRegistry
+      summary: Search companies and all AI product types
+      parameters:
+        - { in: query, name: q, required: true, schema: { type: string, minLength: 2 } }
+        - { in: query, name: type, schema: { type: string } }
+        - { in: query, name: verified, schema: { type: boolean, default: false } }
+      responses:
+        "200": { description: Search results }
+components:
+  schemas:
+    ProductType:
+      type: string
+      enum: [application, mcp_server, skill, agent, model, api, developer_tool]

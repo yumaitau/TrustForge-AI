@@ -1,0 +1,79 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: trustforge_ci
+          POSTGRES_USER: trustforge
+          POSTGRES_PASSWORD: ci
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U trustforge -d trustforge_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgres://trustforge:ci@localhost:5432/trustforge_ci
+      BETTER_AUTH_SECRET: ci-only-secret-with-at-least-thirty-two-characters
+      BETTER_AUTH_URL: http://localhost:3000
+      NEXT_PUBLIC_BETTER_AUTH_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run db:migrate
+      - run: npm run build
+      - name: Install browser for end-to-end tests
+        run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - name: Smoke test production server
+        run: |
+          npm start > /tmp/trustforge-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID' EXIT
+          for attempt in {1..30}; do
+            curl --fail --silent http://localhost:3000/api/v1/health && break
+            sleep 1
+          done
+          curl --fail --silent http://localhost:3000/ > /dev/null
+          curl --fail --silent http://localhost:3000/sign-in > /dev/null
+          curl --fail --silent http://localhost:3000/openapi.yaml > /dev/null
+      - run: npm audit --omit=dev --audit-level=high
+
+  container:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: trustforge-ai:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

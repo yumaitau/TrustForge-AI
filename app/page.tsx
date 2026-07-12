@@ -31,11 +31,11 @@ export default function Home() {
           <p className="muted mt-8 max-w-[62ch] text-lg leading-8">
             Verify AI companies, products, MCP servers, agents, models, APIs, and skills through transparent scores linked to current evidence.
           </p>
-          <form className="mt-10 flex max-w-[610px] gap-2" role="search">
+          <form action="/search" className="mt-10 flex max-w-[610px] gap-2" role="search">
             <label className="sr-only" htmlFor="search">Search the AI trust registry</label>
             <div className="flex min-h-14 flex-1 items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface)] px-4 focus-within:border-[var(--accent)]">
               <Search size={19} className="muted" aria-hidden="true" />
-              <input id="search" className="w-full border-0 bg-transparent outline-none placeholder:text-[var(--muted)]" placeholder="Search a company, tool, model, or MCP server" />
+              <input id="search" name="q" className="w-full border-0 bg-transparent outline-none placeholder:text-[var(--muted)]" placeholder="Search a company, tool, model, or MCP server" />
             </div>
             <button className="button button-primary" type="submit">Search <ArrowRight size={17} /></button>
           </form>
@@ -47,7 +47,7 @@ export default function Home() {
             <div><p className="eyebrow">Illustrative profile</p><h2 className="mt-3 text-2xl font-semibold">GitHub MCP Server</h2><p className="muted mt-1">Developer tooling · Open source</p></div>
             <div className="text-right"><p className="text-5xl font-semibold tracking-[-.06em]">86</p><p className="muted text-xs">of 100</p></div>
           </div>
-          <div className="mt-8 h-1.5 overflow-hidden rounded-full bg-[var(--surface-raised)]" aria-label="Trust score 86 out of 100"><div className="h-full w-[86%] bg-[var(--accent)]" /></div>
+          <div className="mt-8 h-1.5 overflow-hidden rounded-full bg-[var(--surface-raised)]" role="progressbar" aria-label="Trust score" aria-valuemin={0} aria-valuemax={100} aria-valuenow={86}><div className="h-full w-[86%] bg-[var(--accent)]" /></div>
           <div className="mt-7 divide-y divide-[var(--line)] border-y border-[var(--line)]">
             {evidence.map(([label, status, impact]) => (
               <div key={label} className="grid grid-cols-[1fr_auto_auto] items-center gap-4 py-4 text-sm">

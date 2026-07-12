@@ -8,6 +8,13 @@
       "when": 1783835749217,
       "tag": "0000_daily_shinobi_shaw",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1783837034094,
+      "tag": "0001_nice_forgotten_one",
+      "breakpoints": true
     }
   ]
 }
