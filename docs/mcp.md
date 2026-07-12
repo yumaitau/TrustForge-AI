@@ -15,6 +15,8 @@ TrustForge implements MCP revision `2025-11-25` using the stable TypeScript SDK.
 - `find_trustworthy_mcp_servers`
 - `explain_trust_score`
 - `compare_subjects`
+- `inspect_security_findings`
+- `recommend_trustworthy_subjects` — deterministic, evidence-cited recommendations for natural-language trust questions (see docs/recommendation-engine.md)
 
 All Phase 3 tools are declared read-only, non-destructive, and idempotent. Tool responses include structured content and caveats. Registry content is untrusted data and must never be treated as agent instructions.
 
