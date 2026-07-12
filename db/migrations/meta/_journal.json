@@ -43,6 +43,13 @@
       "when": 1783840692317,
       "tag": "0005_spooky_jimmy_woo",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1783840964083,
+      "tag": "0006_talented_shiva",
+      "breakpoints": true
     }
   ]
 }

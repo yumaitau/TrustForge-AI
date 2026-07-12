@@ -8,3 +8,4 @@ export * from "./community";
 export * from "./ecosystem";
 export * from "./security";
 export * from "./enterprise";
+export * from "./compliance";

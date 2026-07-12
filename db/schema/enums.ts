@@ -38,3 +38,4 @@ export const aiEvaluationOutcomeEnum = pgEnum("ai_evaluation_outcome", ["pass", 
 export const procurementStatusEnum = pgEnum("procurement_status", ["draft", "submitted", "assessing", "approved", "rejected", "cancelled", "expired"]);
 export const decisionTypeEnum = pgEnum("decision_type", ["approve", "reject", "request_changes", "grant_exception"]);
 export const classificationEnum = pgEnum("classification", ["public", "internal", "confidential", "restricted"]);
+export const assessmentStatusEnum = pgEnum("assessment_status", ["draft", "in_progress", "review_required", "complete"]);
