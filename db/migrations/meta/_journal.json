@@ -57,6 +57,13 @@
       "when": 1783847212913,
       "tag": "0007_fuzzy_midnight",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1783847444204,
+      "tag": "0008_milky_jigsaw",
+      "breakpoints": true
     }
   ]
 }

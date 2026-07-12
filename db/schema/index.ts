@@ -10,3 +10,4 @@ export * from "./security";
 export * from "./enterprise";
 export * from "./compliance";
 export * from "./marketplace";
+export * from "./mobile";

@@ -46,3 +46,6 @@ export const pricingModelEnum = pgEnum("pricing_model", ["free", "one_time", "su
 export const disputeKindEnum = pgEnum("dispute_kind", ["billing", "misrepresentation", "quality", "tax", "other"]);
 export const disputeStatusEnum = pgEnum("dispute_status", ["open", "under_review", "resolved", "rejected"]);
 export const orderStatusEnum = pgEnum("order_status", ["pending", "paid", "refunded", "cancelled"]);
+export const mobilePlatformEnum = pgEnum("mobile_platform", ["ios", "android"]);
+export const alertKindEnum = pgEnum("alert_kind", ["score_drop", "new_finding", "verification_change"]);
+export const alertStatusEnum = pgEnum("alert_status", ["queued", "sent", "failed"]);
