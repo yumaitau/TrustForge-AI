@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Blocks, Database, FileCheck2, LayoutDashboard, MessageSquare, Search, Settings, ShieldCheck } from "lucide-react";
+import { Blocks, Database, FileCheck2, LayoutDashboard, MessageSquare, Search, Settings, ShieldAlert, ShieldCheck } from "lucide-react";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { organisations } from "@/db/schema";
@@ -14,6 +14,7 @@ const navigation = [
   { href: "/search", label: "Search", icon: Search },
   { href: "/evidence", label: "Evidence", icon: FileCheck2 },
   { href: "/community", label: "Community", icon: MessageSquare },
+  { href: "/security", label: "Security intelligence", icon: ShieldAlert },
   { href: "/settings/security", label: "Security", icon: Settings },
 ];
 

@@ -29,6 +29,13 @@
       "when": 1783838574439,
       "tag": "0003_spicy_komodo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1783839787190,
+      "tag": "0004_last_betty_ross",
+      "breakpoints": true
     }
   ]
 }

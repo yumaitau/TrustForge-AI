@@ -6,3 +6,4 @@ export * from "./audit";
 export * from "./verification";
 export * from "./community";
 export * from "./ecosystem";
+export * from "./security";

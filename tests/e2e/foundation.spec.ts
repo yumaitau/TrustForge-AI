@@ -42,6 +42,23 @@ test("a new user can register, create an organisation, and reach the workspace",
   const score = await (await page.request.get(`/api/v1/trust-scores/company/${company.id}`)).json();
   expect(Number(score.data.score)).toBeGreaterThan(50);
 
+  const snapshotHash = "a".repeat(64);
+  const snapshot = { fetchedAt: new Date().toISOString(), sourceUrl: "https://osv.dev/vulnerability/OSV-TEST-001", license: "CC-BY-4.0", sha256: snapshotHash, payload: { fixture: true } };
+  const advisoryResponse = await page.request.post("/api/v1/security/advisories", { data: { source: "osv", externalId: `OSV-TEST-${Date.now()}`, summary: "Controlled dependency fixture", severity: "medium", affected: [{ ecosystem: "npm", packageName: "fixture-package", ranges: ["<2.0.0"] }], sourceUrl: "https://osv.dev/vulnerability/OSV-TEST-001", snapshot } });
+  expect(advisoryResponse.status()).toBe(201);
+  const advisory = (await advisoryResponse.json()).data;
+  const findingResponse = await page.request.post("/api/v1/security/findings", { data: { subjectType: "company", subjectId: company.id, advisoryId: advisory.id, scanner: "osv-fixture", fingerprint: `fixture-${Date.now()}`, title: "Fixture dependency requires review", severity: "medium", affectedComponent: "pkg:npm/fixture-package@1.0.0", rawSnapshot: snapshot } });
+  expect(findingResponse.status()).toBe(201);
+  const finding = (await findingResponse.json()).data;
+  expect((await page.request.post(`/api/v1/security/findings/${finding.id}/adjudicate`, { data: { status: "accepted_risk", reason: "Controlled test fixture is isolated from production workloads." } })).status()).toBe(200);
+  expect((await page.request.post("/api/v1/security/sboms", { data: { subjectType: "company", subjectId: company.id, format: "cyclonedx", documentName: "fixture-bom.json", documentHash: "b".repeat(64), sourceSnapshot: snapshot, components: [{ ecosystem: "npm", packageName: "fixture-package", version: "1.0.0", licenses: ["MIT"], direct: true }] } })).status()).toBe(201);
+  expect((await page.request.post("/api/v1/monitoring/targets", { data: { subjectType: "company", subjectId: company.id, targetType: "vulnerability", target: `osv:fixture-${Date.now()}`, source: "osv", intervalMinutes: 60 } })).status()).toBe(201);
+  expect((await page.request.post("/api/v1/monitoring/subscriptions", { data: { subjectType: "company", subjectId: company.id, eventTypes: ["monitoring.vulnerability.changed"], channels: ["in_app"] } })).status()).toBe(201);
+  const suiteResponse = await page.request.post("/api/v1/ai-evaluations/suites", { data: { name: `Tool safety suite ${Date.now()}`, kind: "tool_safety", version: "1.0.0", methodology: "Controlled fixture with versioned, hashed inputs and a deterministic safety rubric for permitted tool invocation.", cases: [{ caseId: "safe-tool-boundary", promptHash: "c".repeat(64), expectedOutcome: "pass", rubric: { minimumScore: 80 } }] } });
+  expect(suiteResponse.status()).toBe(201);
+  const suite = (await suiteResponse.json()).data;
+  expect((await page.request.post("/api/v1/ai-evaluations/runs", { data: { subjectType: "company", subjectId: company.id, suiteId: suite.suite.id, observedAt: new Date().toISOString(), environment: { targetVersion: "fixture-1.0", environmentHash: "d".repeat(64), executionMode: "controlled_lab" }, results: [{ caseId: suite.cases[0].id, outcome: "pass", score: 95, observedBehavior: "The controlled fixture honoured the explicit tool boundary.", evidence: { traceHash: "e".repeat(64) } }] } })).status()).toBe(201);
+
   const reviewResponse = await page.request.post("/api/v1/reviews", { data: { subjectType: "company", subjectId: company.id, title: "Clear security documentation", body: "The security documentation was current, specific, and straightforward to validate during our internal assessment process.", rating: 4, verifiedUse: true, useCase: "Enterprise security review" } });
   expect(reviewResponse.status()).toBe(201);
   expect((await reviewResponse.json()).data.review.status).toBe("published");
@@ -63,7 +80,7 @@ test("a new user can register, create an organisation, and reach the workspace",
   expect(JSON.stringify(await graphqlResponse.json())).toContain("Secure Git MCP");
   expect((await page.request.get("/api/trpc/health")).status()).toBe(200);
 
-  for (const path of ["/dashboard", "/evidence", "/community", "/mcp-servers"]) {
+  for (const path of ["/dashboard", "/evidence", "/community", "/mcp-servers", "/security"]) {
     await page.goto(path);
     const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
     expect(accessibility.violations, `${path}: ${JSON.stringify(accessibility.violations, null, 2)}`).toEqual([]);

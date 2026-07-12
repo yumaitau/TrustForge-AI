@@ -162,6 +162,28 @@ paths:
   /apis:
     get: { operationId: listApis, summary: List AI APIs, responses: { "200": { description: API profiles } } }
     post: { operationId: createApi, summary: Register an AI API, responses: { "201": { description: API registered } } }
+  /security/advisories:
+    get: { operationId: listSecurityAdvisories, summary: List attributed security advisories, responses: { "200": { description: Advisory records and source snapshots } } }
+    post: { operationId: upsertSecurityAdvisory, summary: Ingest a source-attributed advisory, responses: { "201": { description: Advisory stored or refreshed } } }
+  /security/findings:
+    get: { operationId: listSecurityFindings, summary: List observed security findings for a subject, responses: { "200": { description: Findings, status, and source material } } }
+    post: { operationId: observeSecurityFinding, summary: Record or refresh a deduplicated scanner finding, responses: { "201": { description: Finding observed } } }
+  /security/findings/{id}/adjudicate:
+    post: { operationId: adjudicateSecurityFinding, summary: Mark a finding as accepted risk, false positive, resolved, or not affected, responses: { "200": { description: Finding adjudicated } } }
+  /security/sboms:
+    post: { operationId: importSbom, summary: Import a reproducible CycloneDX or SPDX software bill of materials, responses: { "201": { description: SBOM and normalised components stored } } }
+  /monitoring/targets:
+    get: { operationId: listMonitoringTargets, summary: List tenant monitoring targets, responses: { "200": { description: Monitoring targets } } }
+    post: { operationId: createMonitoringTarget, summary: Create or re-enable an idempotent monitoring target, responses: { "201": { description: Monitoring target configured } } }
+  /monitoring/subscriptions:
+    post: { operationId: subscribeToMonitoring, summary: Subscribe the active user to subject change events, responses: { "201": { description: Subscription configured } } }
+  /monitoring/trigger:
+    post: { operationId: triggerMonitoring, summary: Queue due monitoring checks for an authorised tenant, responses: { "202": { description: Due checks queued } } }
+  /ai-evaluations/suites:
+    post: { operationId: createAiEvaluationSuite, summary: Version a controlled AI security evaluation suite, responses: { "201": { description: Suite and hashed cases created } } }
+  /ai-evaluations/runs:
+    get: { operationId: listAiEvaluationRuns, summary: List versioned lab results for a subject, responses: { "200": { description: Evaluation runs } } }
+    post: { operationId: recordAiEvaluationRun, summary: Record a controlled or chain-of-custody imported evaluation run, responses: { "201": { description: Evaluation run stored } } }
 components:
   schemas:
     ProductType:

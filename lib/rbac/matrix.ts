@@ -8,6 +8,8 @@ export const ACTIONS = {
   evidenceSubmit: "evidence:submit",
   evidenceAdjudicate: "evidence:adjudicate",
   moderationManage: "moderation:manage",
+  securityManage: "security:manage",
+  monitoringManage: "monitoring:manage",
 } as const;
 
 export type Action = (typeof ACTIONS)[keyof typeof ACTIONS];
@@ -20,6 +22,8 @@ export const PERMISSIONS: Readonly<Record<Action, readonly MemberRole[]>> = {
   [ACTIONS.evidenceSubmit]: ["owner", "admin", "analyst"],
   [ACTIONS.evidenceAdjudicate]: ["owner", "admin"],
   [ACTIONS.moderationManage]: ["owner", "admin"],
+  [ACTIONS.securityManage]: ["owner", "admin", "analyst"],
+  [ACTIONS.monitoringManage]: ["owner", "admin", "analyst"],
 };
 
 export function isPermitted(action: Action, role: MemberRole) {

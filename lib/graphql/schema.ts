@@ -2,6 +2,7 @@ import { buildSchema, graphql } from "graphql";
 import { listCompanies, listProducts } from "@/lib/registry/repository";
 import { listMcpServers } from "@/lib/ecosystem/repository";
 import { scoreHistory } from "@/lib/trust/service";
+import { listFindings } from "@/lib/security/intelligence";
 
 export const trustForgeGraphqlSchema = buildSchema(`
   enum SubjectType { company product mcp_server skill agent model api }
@@ -9,10 +10,12 @@ export const trustForgeGraphqlSchema = buildSchema(`
   type PermissionRisk { level: String!, score: Int!, findings: [String!]! }
   type McpServer { id: ID!, productId: ID!, name: String!, slug: String!, trustScore: Float, verificationLevel: String!, transports: [String!]!, enterpriseReady: Boolean!, sandboxCompatible: Boolean!, permissionRisk: PermissionRisk! }
   type TrustScore { id: ID!, score: Float!, methodologyVersion: String!, calculatedAt: String!, explanation: String! }
+  type SecurityFinding { id: ID!, title: String!, severity: String!, status: String!, scanner: String!, affectedComponent: String, remediation: String }
   type Query {
     search(query: String!, type: SubjectType, limit: Int = 20): [SearchResult!]!
     mcpServers(query: String, transport: String, enterpriseReady: Boolean, sandboxCompatible: Boolean, limit: Int = 20): [McpServer!]!
     trustScore(subjectType: SubjectType!, subjectId: ID!): TrustScore
+    securityFindings(subjectType: SubjectType!, subjectId: ID!): [SecurityFinding!]!
   }
 `);
 
@@ -29,6 +32,7 @@ const rootValue = {
     const [score] = await scoreHistory(subjectType, subjectId, 1); if (!score) return null;
     return { ...score, score: Number(score.score), calculatedAt: score.calculatedAt.toISOString(), explanation: JSON.stringify(score.explanation) };
   },
+  async securityFindings({ subjectType, subjectId }: { subjectType: "company" | "product" | "mcp_server" | "skill" | "agent" | "model" | "api"; subjectId: string }) { return listFindings(subjectType, subjectId); },
 };
 
 export function executeGraphql(input: { source: string; variableValues?: Record<string, unknown>; operationName?: string }) {

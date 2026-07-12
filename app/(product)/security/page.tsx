@@ -1,0 +1,12 @@
+import { AlertTriangle, Bot, Clock3, FileJson2, Radar, ShieldCheck } from "lucide-react";
+
+const capabilities = [
+  { icon: AlertTriangle, title: "Attributed findings", detail: "CVE, OSV, advisory, repository, domain, and certificate observations retain their source snapshot and a stable deduplication fingerprint." },
+  { icon: FileJson2, title: "Reproducible SBOMs", detail: "CycloneDX and SPDX imports are content-addressed, component-normalised, and preserved for repeatable dependency analysis." },
+  { icon: Radar, title: "Continuous monitoring", detail: "Versioned monitoring targets run through leases, idempotency keys, retries, dead letters, and before/after change events." },
+  { icon: Bot, title: "Controlled AI labs", detail: "Prompt-injection, retention, training-use, jailbreak, permission, tool-safety, and responsible-AI evaluations record the suite, environment, and observed result." },
+];
+
+export default function SecurityIntelligencePage() {
+  return <div className="mx-auto max-w-6xl"><p className="eyebrow">Security evidence</p><h1 className="mt-3 text-3xl font-semibold tracking-[-.035em]">Security intelligence that stays explainable.</h1><p className="muted mt-3 max-w-[76ch] leading-7">TrustForge keeps scanner observations, vendor claims, source material, and adjudications distinct. Automated collection is bounded by approved sources and produces evidence—not an opaque verdict.</p><section className="mt-8 grid gap-4 md:grid-cols-2">{capabilities.map(({ icon: Icon, title, detail }) => <article key={title} className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-5"><Icon className="text-[var(--accent)]" size={20} /><h2 className="mt-4 font-medium">{title}</h2><p className="muted mt-2 text-sm leading-6">{detail}</p></article>)}</section><section className="mt-8 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-6"><div className="flex items-start gap-3"><ShieldCheck className="mt-0.5 text-[var(--accent)]" size={20} /><div><h2 className="font-medium">Responsible disclosure is built in</h2><p className="muted mt-2 max-w-[74ch] text-sm leading-6">Sensitive AI-evaluation cases and findings can be restricted. Public results distinguish a supplier’s claim from behaviour observed in a controlled lab; harmful details remain gated for coordinated disclosure.</p></div></div><div className="mt-5 flex items-center gap-2 text-xs text-[var(--muted)]"><Clock3 size={15} /> Monitoring workers are lease-based and only create score recalculations from preserved change events.</div></section></div>;
+}

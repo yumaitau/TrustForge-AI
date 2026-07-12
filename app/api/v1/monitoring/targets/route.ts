@@ -1,0 +1,8 @@
+import { NextResponse } from "next/server";
+import { requireOrganisationAction } from "@/lib/auth/context";
+import { apiError } from "@/lib/http/responses";
+import { listMonitoringTargets, createMonitoringTarget } from "@/lib/monitoring/service";
+import { ACTIONS } from "@/lib/rbac/matrix";
+
+export async function GET() { try { const { organisation } = await requireOrganisationAction(ACTIONS.monitoringManage); return NextResponse.json({ items: await listMonitoringTargets(organisation.id) }); } catch (error) { return apiError(error); } }
+export async function POST(request: Request) { try { const { session, organisation } = await requireOrganisationAction(ACTIONS.monitoringManage); return NextResponse.json({ data: await createMonitoringTarget(await request.json(), { userId: session.user.id, organisationId: organisation.id }) }, { status: 201 }); } catch (error) { return apiError(error); } }

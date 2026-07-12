@@ -3,6 +3,7 @@ import { z } from "zod";
 import { listCompanies, listProducts } from "@/lib/registry/repository";
 import { listMcpServers } from "@/lib/ecosystem/repository";
 import { scoreHistory } from "@/lib/trust/service";
+import { listFindings } from "@/lib/security/intelligence";
 
 const t = initTRPC.create();
 const subjectType = z.enum(["company", "product", "mcp_server", "skill", "agent", "model", "api"]);
@@ -15,6 +16,7 @@ export const appRouter = t.router({
   }),
   mcpServers: t.procedure.input(z.object({ query: z.string().optional(), enterpriseReady: z.boolean().optional(), sandboxCompatible: z.boolean().optional(), limit: z.number().int().min(1).max(100).default(20) })).query(({ input }) => listMcpServers(input)),
   trustScore: t.procedure.input(z.object({ subjectType, subjectId: z.uuid() })).query(async ({ input }) => (await scoreHistory(input.subjectType, input.subjectId, 1))[0] ?? null),
+  securityFindings: t.procedure.input(z.object({ subjectType, subjectId: z.uuid() })).query(({ input }) => listFindings(input.subjectType, input.subjectId)),
 });
 
 export type AppRouter = typeof appRouter;

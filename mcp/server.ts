@@ -3,12 +3,14 @@ import { z } from "zod";
 import { listCompanies, listProducts } from "@/lib/registry/repository";
 import { listMcpServers } from "@/lib/ecosystem/repository";
 import { scoreHistory } from "@/lib/trust/service";
+import { listFindings } from "@/lib/security/intelligence";
 
 export type McpSearchResult = { id: string; name: string; type: string; verificationLevel?: string; trustScore?: number | null; evidenceIds?: string[] };
 export type TrustForgeMcpServices = {
   search(input: { query: string; type?: string; countryCode?: string; openSource?: boolean; verified?: boolean; limit: number }): Promise<McpSearchResult[]>;
   findMcp(input: { query?: string; transport?: "stdio" | "http" | "websocket"; enterpriseReady?: boolean; sandboxCompatible?: boolean; minTrustScore?: number; limit: number }): Promise<unknown[]>;
   getScore(input: { subjectType: "company" | "product" | "mcp_server" | "skill" | "agent" | "model" | "api"; subjectId: string }): Promise<unknown>;
+  getSecurityFindings?(input: { subjectType: "company" | "product" | "mcp_server" | "skill" | "agent" | "model" | "api"; subjectId: string; includeResolved: boolean }): Promise<unknown>;
 };
 
 export const defaultMcpServices: TrustForgeMcpServices = {
@@ -18,6 +20,7 @@ export const defaultMcpServices: TrustForgeMcpServices = {
   },
   async findMcp(input) { const rows = await listMcpServers(input); return rows.filter((item) => input.minTrustScore === undefined || (item.trustScore ?? -1) >= input.minTrustScore); },
   async getScore(input) { const history = await scoreHistory(input.subjectType, input.subjectId, 10); return { current: history[0] ?? null, history }; },
+  async getSecurityFindings(input) { const findings = await listFindings(input.subjectType, input.subjectId); return findings.filter((finding) => input.includeResolved || !["resolved", "not_affected", "false_positive"].includes(finding.status)); },
 };
 
 const toolResult = (value: unknown) => ({ content: [{ type: "text" as const, text: JSON.stringify(value, null, 2) }], structuredContent: { result: value } });
@@ -30,6 +33,8 @@ export function createTrustForgeMcpServer(services: TrustForgeMcpServices = defa
   server.registerTool("find_trustworthy_mcp_servers", { title: "Find trustworthy MCP servers", description: "Find MCP servers using explicit transport, sandbox, enterprise, permission-risk, and minimum-score filters.", inputSchema: { query: z.string().max(200).optional(), transport: z.enum(["stdio", "http", "websocket"]).optional(), enterpriseReady: z.boolean().optional(), sandboxCompatible: z.boolean().optional(), minTrustScore: z.number().min(0).max(100).optional(), limit: z.number().int().min(1).max(50).default(10) }, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true } }, async (input) => toolResult({ results: await services.findMcp(input), caveat: "Permission risk and score confidence must be evaluated for the intended deployment context." }));
 
   server.registerTool("explain_trust_score", { title: "Explain a Trust Score", description: "Return the current immutable score calculation and its recent history for a registry subject.", inputSchema: { subjectType: z.enum(["company", "product", "mcp_server", "skill", "agent", "model", "api"]), subjectId: z.uuid() }, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true } }, async (input) => toolResult(await services.getScore(input)));
+
+  server.registerTool("inspect_security_findings", { title: "Inspect security findings", description: "Return observed, source-attributed security findings for a subject. Findings are not vendor claims and do not by themselves establish exploitability.", inputSchema: { subjectType: z.enum(["company", "product", "mcp_server", "skill", "agent", "model", "api"]), subjectId: z.uuid(), includeResolved: z.boolean().default(false) }, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true } }, async (input) => toolResult({ results: await (services.getSecurityFindings?.(input) ?? defaultMcpServices.getSecurityFindings!(input)), caveat: "Review source snapshots, affected versions, and adjudications before acting." }));
 
   server.registerTool("compare_subjects", { title: "Compare registry subjects", description: "Compare the current trust-score records for two to four registry subjects.", inputSchema: { subjects: z.array(z.object({ subjectType: z.enum(["company", "product", "mcp_server", "skill", "agent", "model", "api"]), subjectId: z.uuid() })).min(2).max(4) }, annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true } }, async ({ subjects }) => toolResult({ subjects: await Promise.all(subjects.map((subject) => services.getScore(subject))) }));
 
