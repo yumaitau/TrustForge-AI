@@ -1,0 +1,24 @@
+openapi: 3.1.0
+info:
+  title: TrustForge AI API
+  version: 0.1.0
+  description: Evidence-backed trust registry API. This contract will expand without moving domain logic into the transport layer.
+servers:
+  - url: /api/v1
+paths:
+  /health:
+    get:
+      operationId: getHealth
+      summary: Check service health
+      responses:
+        "200":
+          description: Service is available
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, service, timestamp]
+                properties:
+                  status: { type: string, const: ok }
+                  service: { type: string }
+                  timestamp: { type: string, format: date-time }

@@ -1,0 +1,35 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: trustforge_dev
+      POSTGRES_USER: trustforge
+      POSTGRES_PASSWORD: dev
+    ports: ["${POSTGRES_PORT:-55436}:5432"]
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U trustforge -d trustforge_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports: ["${REDIS_PORT:-6380}:6379"]
+    volumes: ["redis_data:/data"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+  object-storage:
+    image: minio/minio:latest
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: trustforge
+      MINIO_ROOT_PASSWORD: trustforge-dev-only
+    ports: ["${S3_PORT:-19020}:9000", "${S3_CONSOLE_PORT:-19021}:9001"]
+    volumes: ["object_data:/data"]
+volumes:
+  postgres_data:
+  redis_data:
+  object_data:
