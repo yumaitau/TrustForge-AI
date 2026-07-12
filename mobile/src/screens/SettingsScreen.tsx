@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Platform, Pressable, Switch, Text, TextInput, View } from "react-native";
 import * as Notifications from "expo-notifications";
-import { api, getBaseUrl, setBaseUrl, setToken } from "@/api/client";
+import { api, getBaseUrl, setBaseUrl, signOut } from "@/api/client";
 
 export function SettingsScreen() {
   const [serverUrl, setServerUrl] = useState("");
@@ -46,7 +46,7 @@ export function SettingsScreen() {
         <Switch value={pushEnabled} onValueChange={(value) => void registerForPush(value)} accessibilityLabel="Enable trust-change push alerts" />
       </View>
       {status && <Text accessibilityRole="alert" style={{ color: "#374151" }}>{status}</Text>}
-      <Pressable accessibilityRole="button" accessibilityLabel="Sign out and clear local data" onPress={() => void setToken(null).then(() => setStatus("Signed out. Local session cleared from secure storage."))} style={{ backgroundColor: "#b91c1c", borderRadius: 10, padding: 14, alignItems: "center" }}>
+      <Pressable accessibilityRole="button" accessibilityLabel="Sign out and clear local data" onPress={() => void signOut().then(() => setStatus("Signed out. Local session cleared from secure storage."))} style={{ backgroundColor: "#b91c1c", borderRadius: 10, padding: 14, alignItems: "center" }}>
         <Text style={{ color: "white", fontWeight: "600" }}>Sign out</Text>
       </Pressable>
       <Text style={{ color: "#6b7280" }}>

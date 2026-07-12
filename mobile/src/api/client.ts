@@ -70,6 +70,43 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (body?.data ?? body) as T;
 }
 
+export async function hasSession() {
+  return (await getToken()) !== null;
+}
+
+/**
+ * Email/password sign-in against better-auth. The bearer plugin returns the
+ * session token in the set-auth-token response header; it goes straight into
+ * secure storage and never touches any other cache. Platform-passkey sign-in
+ * will layer on top of the same session storage once the native WebAuthn
+ * module ships with the store build.
+ */
+export async function signInWithEmail(email: string, password: string) {
+  const baseUrl = await getBaseUrl();
+  const response = await fetch(`${baseUrl}/api/auth/sign-in/email`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const body = (await response.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? `Sign-in failed (${response.status})`);
+  }
+  const token = response.headers.get("set-auth-token");
+  if (!token) throw new Error("The server did not return a session token");
+  await setToken(token);
+}
+
+export async function signOut() {
+  try {
+    await request(`/api/auth/sign-out`, { method: "POST" });
+  } catch {
+    // Local sign-out proceeds even if the server call fails; the session expires server-side.
+  } finally {
+    await setToken(null);
+  }
+}
+
 export const api = {
   search: (query: string) => request<SearchResult[]>(`/api/v1/search?q=${encodeURIComponent(query)}`),
   trustScore: (subjectType: SubjectType, subjectId: string) => request<TrustScoreRecord | null>(`/api/v1/trust-scores/${subjectType}/${subjectId}`),

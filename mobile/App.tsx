@@ -1,9 +1,12 @@
+import { useEffect, useState } from "react";
 import { NavigationContainer, type LinkingOptions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import * as Linking from "expo-linking";
 import { StatusBar } from "expo-status-bar";
-import { Pressable, Text } from "react-native";
+import { ActivityIndicator, Pressable, Text } from "react-native";
+import { hasSession } from "@/api/client";
 import type { RootStackParamList } from "@/navigation";
+import { SignInScreen } from "@/screens/SignInScreen";
 import { SearchScreen } from "@/screens/SearchScreen";
 import { SubjectScreen } from "@/screens/SubjectScreen";
 import { AlertsScreen } from "@/screens/AlertsScreen";
@@ -27,10 +30,14 @@ const linking: LinkingOptions<RootStackParamList> = {
 };
 
 export default function App() {
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  useEffect(() => { void hasSession().then(setSignedIn); }, []);
+  if (signedIn === null) return <ActivityIndicator accessibilityLabel="Starting TrustForge" style={{ flex: 1 }} />;
   return (
     <NavigationContainer linking={linking}>
       <StatusBar style="auto" />
-      <Stack.Navigator initialRouteName="Search">
+      <Stack.Navigator initialRouteName={signedIn ? "Search" : "SignIn"}>
+        <Stack.Screen name="SignIn" component={SignInScreen} options={{ headerShown: false }} />
         <Stack.Screen
           name="Search"
           component={SearchScreen}

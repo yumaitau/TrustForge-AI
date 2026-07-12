@@ -1,7 +1,7 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-import { twoFactor } from "better-auth/plugins";
+import { bearer, twoFactor } from "better-auth/plugins";
 import { passkey } from "@better-auth/passkey";
 import { db } from "@/lib/db/client";
 
@@ -22,5 +22,5 @@ export const auth = betterAuth({
     ...(process.env.GITLAB_CLIENT_ID && process.env.GITLAB_CLIENT_SECRET ? { gitlab: { clientId: process.env.GITLAB_CLIENT_ID, clientSecret: process.env.GITLAB_CLIENT_SECRET } } : {}),
     ...(process.env.LINKEDIN_CLIENT_ID && process.env.LINKEDIN_CLIENT_SECRET ? { linkedin: { clientId: process.env.LINKEDIN_CLIENT_ID, clientSecret: process.env.LINKEDIN_CLIENT_SECRET } } : {}),
   },
-  plugins: [twoFactor({ issuer: "TrustForge AI" }), passkey(), nextCookies()],
+  plugins: [twoFactor({ issuer: "TrustForge AI" }), passkey(), bearer(), nextCookies()],
 });
