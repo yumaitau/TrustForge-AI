@@ -22,3 +22,10 @@ export const trustDimensionEnum = pgEnum("trust_dimension", [
   "responsible_ai", "community", "popularity", "incident_history", "update_cadence",
   "open_source_health", "dependency_risk", "vulnerability_history",
 ]);
+
+export const claimMethodEnum = pgEnum("claim_method", ["dns", "email", "github", "oauth", "signed_challenge"]);
+export const claimStatusEnum = pgEnum("claim_status", ["pending", "verified", "failed", "expired", "revoked"]);
+export const reviewStatusEnum = pgEnum("review_status", ["pending", "published", "rejected", "removed", "appealed"]);
+export const moderationStatusEnum = pgEnum("moderation_status", ["open", "investigating", "actioned", "dismissed", "appealed", "resolved"]);
+export const reputationEventEnum = pgEnum("reputation_event", ["review_published", "review_helpful", "edit_accepted", "evidence_verified", "security_research", "moderation_upheld", "penalty"]);
+export const fraudSignalEnum = pgEnum("fraud_signal", ["duplicate_content", "review_burst", "coordinated_vote", "account_cluster", "velocity", "identity_mismatch"]);

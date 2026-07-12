@@ -1,4 +1,4 @@
-export const TRUST_METHODOLOGY_VERSION = "2026.1";
+export const TRUST_METHODOLOGY_VERSION = "2026.2";
 
 export const TRUST_DIMENSIONS = [
   "security", "privacy", "transparency", "documentation", "maintenance", "support",
@@ -31,6 +31,9 @@ export type EvidenceContribution = {
   value: number;
   confidence: number;
   rationale: string;
+  observedAt?: Date;
+  validUntil?: Date | null;
+  status?: "pending" | "verified" | "rejected" | "expired" | "superseded";
 };
 
 export type TrustScoreComponent = {
@@ -38,6 +41,7 @@ export type TrustScoreComponent = {
   score: number;
   weight: number;
   weightedScore: number;
+  confidence: number;
   evidenceIds: string[];
   rationale: string;
 };
@@ -61,34 +65,41 @@ const clamp = (value: number, minimum = 0, maximum = 100) =>
 export function calculateTrustScore(
   evidence: readonly EvidenceContribution[],
   weights: Readonly<Record<TrustDimension, number>> = DEFAULT_WEIGHTS,
+  now = new Date(),
 ): TrustScoreResult {
   const weightTotal = Object.values(weights).reduce((total, weight) => total + weight, 0);
   if (Math.abs(weightTotal - 1) > 0.0001) throw new Error("Trust score weights must total 1");
 
   const components = TRUST_DIMENSIONS.map<TrustScoreComponent>((dimension) => {
-    const matching = evidence.filter((item) => item.dimension === dimension);
-    const confidenceTotal = matching.reduce((total, item) => total + clamp(item.confidence, 0, 1), 0);
+    const matching = evidence.filter((item) => item.dimension === dimension && (item.status === undefined || item.status === "verified") && (!item.validUntil || item.validUntil > now));
+    const effectiveConfidence = (item: EvidenceContribution) => {
+      const base = clamp(item.confidence, 0, 1);
+      if (!item.observedAt) return base;
+      const ageDays = Math.max(0, now.getTime() - item.observedAt.getTime()) / 86_400_000;
+      return base * Math.pow(0.5, ageDays / 365);
+    };
+    const confidenceTotal = matching.reduce((total, item) => total + effectiveConfidence(item), 0);
     const score = confidenceTotal === 0
       ? 50
-      : matching.reduce((total, item) => total + clamp(item.value) * clamp(item.confidence, 0, 1), 0) / confidenceTotal;
+      : matching.reduce((total, item) => total + clamp(item.value) * effectiveConfidence(item), 0) / confidenceTotal;
     const roundedScore = Number(score.toFixed(2));
+    const componentConfidence = matching.length === 0 ? 0 : Number(clamp(confidenceTotal / matching.length, 0, 1).toFixed(4));
+    const spread = matching.length < 2 ? 0 : Math.max(...matching.map((item) => item.value)) - Math.min(...matching.map((item) => item.value));
     return {
       dimension,
       score: roundedScore,
       weight: weights[dimension],
       weightedScore: Number((roundedScore * weights[dimension]).toFixed(2)),
+      confidence: componentConfidence,
       evidenceIds: matching.map((item) => item.evidenceId),
       rationale: matching.length === 0
         ? "No verified evidence is available; neutral score with zero confidence."
-        : matching.map((item) => item.rationale).join(" "),
+        : `${matching.map((item) => item.rationale).join(" ")}${spread >= 50 ? " Materially contradictory evidence is present." : ""}`,
     };
   });
 
   const score = Number(components.reduce((total, component) => total + component.weightedScore, 0).toFixed(2));
-  const coveredWeight = components
-    .filter((component) => component.evidenceIds.length > 0)
-    .reduce((total, component) => total + component.weight, 0);
-  const confidence = Number(clamp(coveredWeight, 0, 1).toFixed(4));
+  const confidence = Number(clamp(components.reduce((total, component) => total + component.weight * component.confidence, 0), 0, 1).toFixed(4));
   const missing = components.filter((component) => component.evidenceIds.length === 0).map((component) => component.dimension);
 
   return {

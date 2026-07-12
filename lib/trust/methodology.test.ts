@@ -17,6 +17,17 @@ describe("calculateTrustScore", () => {
     expect(result.confidence).toBe(DEFAULT_WEIGHTS.security);
   });
 
+  it("excludes expired evidence and exposes contradictions", () => {
+    const now = new Date("2026-01-01T00:00:00Z");
+    const result = calculateTrustScore([
+      { evidenceId: "expired", dimension: "privacy", value: 100, confidence: 1, rationale: "Old policy.", validUntil: new Date("2025-01-01") },
+      { evidenceId: "positive", dimension: "security", value: 90, confidence: 1, rationale: "Audit passed.", status: "verified" },
+      { evidenceId: "negative", dimension: "security", value: 20, confidence: 1, rationale: "Critical incident.", status: "verified" },
+    ], DEFAULT_WEIGHTS, now);
+    expect(result.components.find((item) => item.dimension === "privacy")?.evidenceIds).toEqual([]);
+    expect(result.components.find((item) => item.dimension === "security")?.rationale).toContain("contradictory");
+  });
+
   it("rejects opaque weighting configurations", () => {
     expect(() => calculateTrustScore([], { ...DEFAULT_WEIGHTS, security: 0.5 })).toThrow(/total 1/);
   });

@@ -40,6 +40,8 @@ export const evidence = pgTable("evidence", {
   subjectType: subjectTypeEnum("subject_type").notNull(),
   subjectId: uuid("subject_id").notNull(),
   type: text("type").notNull(),
+  dimension: trustDimensionEnum("dimension").notNull().default("transparency"),
+  value: numeric("value", { precision: 5, scale: 2 }).notNull().default("50"),
   title: text("title").notNull(),
   summary: text("summary"),
   source: evidenceSourceEnum("source").notNull(),
@@ -52,7 +54,22 @@ export const evidence = pgTable("evidence", {
   submittedByUserId: uuid("submitted_by_user_id").references(() => users.id),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  version: integer("version").notNull().default(1),
+  supersedesEvidenceId: uuid("supersedes_evidence_id"),
 }, (table) => [index("evidence_subject_idx").on(table.subjectType, table.subjectId), index("evidence_status_idx").on(table.status)]);
+
+export const evidenceChallenges = pgTable("evidence_challenges", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  evidenceId: uuid("evidence_id").notNull().references(() => evidence.id),
+  submittedByUserId: uuid("submitted_by_user_id").notNull().references(() => users.id),
+  reason: text("reason").notNull(),
+  supportingEvidenceIds: jsonb("supporting_evidence_ids").$type<string[]>().notNull().default([]),
+  status: evidenceStatusEnum("status").notNull().default("pending"),
+  resolvedByUserId: uuid("resolved_by_user_id").references(() => users.id),
+  resolution: text("resolution"),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+}, (table) => [index("evidence_challenge_idx").on(table.evidenceId, table.status)]);
 
 export const trustScores = pgTable("trust_scores", {
   id: uuid("id").primaryKey().defaultRandom(),

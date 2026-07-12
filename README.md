@@ -37,5 +37,7 @@ npm run build
 - [Roadmap](docs/roadmap.md)
 - [Authentication and identity](docs/authentication.md)
 - [API conventions](docs/api.md)
+- [Verification methodology](docs/verification-methodology.md)
+- [Community and reputation](docs/community-and-reputation.md)
 
 The GitHub Issues roadmap is the living source of delivery work. `docs/roadmap.md` defines the phase taxonomy and roadmap maintenance policy.

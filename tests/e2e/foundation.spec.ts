@@ -1,5 +1,6 @@
 import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
+import { generateKeyPairSync, sign } from "node:crypto";
 
 test("public landing and authentication pages have no detectable WCAG A/AA violations", async ({ page }) => {
   for (const path of ["/", "/sign-in", "/sign-up"]) {
@@ -20,4 +21,34 @@ test("a new user can register, create an organisation, and reach the workspace",
   await page.getByRole("button", { name: "Create workspace" }).click();
   await expect(page).toHaveURL(/\/dashboard$/);
   await expect(page.getByRole("heading", { name: "Trust decisions start with evidence." })).toBeVisible();
+
+  const companyResponse = await page.request.post("/api/v1/companies", { data: { legalName: "Phase Two Labs Pty Ltd", displayName: `Phase Two Labs ${Date.now()}`, websiteUrl: "https://example.com", countryCode: "AU" } });
+  expect(companyResponse.status()).toBe(201);
+  const company = (await companyResponse.json()).data;
+  const { publicKey, privateKey } = generateKeyPairSync("ed25519");
+  const claimResponse = await page.request.post("/api/v1/claims", { data: { subjectType: "company", subjectId: company.id, method: "signed_challenge", publicKey: publicKey.export({ type: "spki", format: "pem" }).toString() } });
+  expect(claimResponse.status()).toBe(201);
+  const claimData = (await claimResponse.json()).data;
+  const signature = sign(null, Buffer.from(claimData.challenge), privateKey).toString("base64");
+  const verifyClaimResponse = await page.request.post(`/api/v1/claims/${claimData.claim.id}/verify`, { data: { challenge: claimData.challenge, signature } });
+  expect(verifyClaimResponse.status()).toBe(200);
+  expect((await verifyClaimResponse.json()).data.status).toBe("verified");
+  expect((await (await page.request.get(`/api/v1/companies/${company.id}`)).json()).data.verificationLevel).toBe("organisation_verified");
+  const evidenceResponse = await page.request.post("/api/v1/evidence", { data: { subjectType: "company", subjectId: company.id, type: "signed_releases", dimension: "security", value: 90, title: "Signed releases verified", summary: "Release signatures were independently checked against the published maintainer keys.", source: "independent_audit", confidence: 1, observedAt: new Date().toISOString() } });
+  expect(evidenceResponse.status()).toBe(201);
+  const evidence = (await evidenceResponse.json()).data;
+  expect((await page.request.post(`/api/v1/evidence/${evidence.id}/adjudicate`, { data: { status: "verified" } })).status()).toBe(200);
+  expect((await page.request.post(`/api/v1/trust-scores/company/${company.id}/recalculate`)).status()).toBe(201);
+  const score = await (await page.request.get(`/api/v1/trust-scores/company/${company.id}`)).json();
+  expect(Number(score.data.score)).toBeGreaterThan(50);
+
+  const reviewResponse = await page.request.post("/api/v1/reviews", { data: { subjectType: "company", subjectId: company.id, title: "Clear security documentation", body: "The security documentation was current, specific, and straightforward to validate during our internal assessment process.", rating: 4, verifiedUse: true, useCase: "Enterprise security review" } });
+  expect(reviewResponse.status()).toBe(201);
+  expect((await reviewResponse.json()).data.review.status).toBe("published");
+
+  for (const path of ["/dashboard", "/evidence", "/community"]) {
+    await page.goto(path);
+    const accessibility = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
+    expect(accessibility.violations, `${path}: ${JSON.stringify(accessibility.violations, null, 2)}`).toEqual([]);
+  }
 });

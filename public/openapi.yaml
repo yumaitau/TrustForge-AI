@@ -83,6 +83,62 @@ paths:
         - { in: query, name: verified, schema: { type: boolean, default: false } }
       responses:
         "200": { description: Search results }
+  /evidence:
+    get:
+      operationId: listEvidence
+      summary: List evidence for a registry subject
+      parameters:
+        - { in: query, name: subjectType, required: true, schema: { type: string } }
+        - { in: query, name: subjectId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Evidence records in observation order }
+    post:
+      operationId: submitEvidence
+      summary: Submit versioned evidence
+      responses:
+        "201": { description: Evidence submitted for adjudication }
+  /evidence/{id}/adjudicate:
+    post:
+      operationId: adjudicateEvidence
+      summary: Verify or reject pending evidence
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Evidence adjudicated }
+  /claims:
+    post:
+      operationId: createVendorClaim
+      summary: Start a replay-resistant vendor claim challenge
+      responses:
+        "201": { description: Claim challenge created }
+  /claims/{id}/verify:
+    post:
+      operationId: verifyVendorClaim
+      summary: Verify a vendor claim through its selected channel
+      parameters:
+        - { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Claim verification result }
+  /reviews:
+    get:
+      operationId: listReviews
+      summary: List published subject reviews
+      responses:
+        "200": { description: Published reviews }
+    post:
+      operationId: submitReview
+      summary: Submit a structured community review
+      responses:
+        "201": { description: Review submitted or published }
+  /trust-scores/{subjectType}/{subjectId}:
+    get:
+      operationId: getTrustScore
+      summary: Get the current score and immutable calculation history
+      parameters:
+        - { in: path, name: subjectType, required: true, schema: { type: string } }
+        - { in: path, name: subjectId, required: true, schema: { type: string, format: uuid } }
+      responses:
+        "200": { description: Current score and history }
 components:
   schemas:
     ProductType:
