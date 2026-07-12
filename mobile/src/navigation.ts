@@ -4,5 +4,6 @@ export type RootStackParamList = {
   Search: undefined;
   Subject: { subjectType: SubjectType; subjectId: string; name: string };
   Alerts: undefined;
+  Compare: undefined;
   Settings: undefined;
 };

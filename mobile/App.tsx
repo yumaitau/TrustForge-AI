@@ -7,6 +7,7 @@ import type { RootStackParamList } from "@/navigation";
 import { SearchScreen } from "@/screens/SearchScreen";
 import { SubjectScreen } from "@/screens/SubjectScreen";
 import { AlertsScreen } from "@/screens/AlertsScreen";
+import { CompareScreen } from "@/screens/CompareScreen";
 import { SettingsScreen } from "@/screens/SettingsScreen";
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -19,6 +20,7 @@ const linking: LinkingOptions<RootStackParamList> = {
       Search: "search",
       Subject: "registry/:subjectType/:subjectId",
       Alerts: "alerts",
+      Compare: "compare",
       Settings: "settings",
     },
   },
@@ -39,6 +41,9 @@ export default function App() {
                 <Pressable accessibilityRole="button" accessibilityLabel="Open alerts" onPress={() => navigation.navigate("Alerts")} style={{ paddingHorizontal: 8 }}>
                   <Text style={{ fontSize: 16 }}>Alerts</Text>
                 </Pressable>
+                <Pressable accessibilityRole="button" accessibilityLabel="Compare favorites" onPress={() => navigation.navigate("Compare")} style={{ paddingHorizontal: 8 }}>
+                  <Text style={{ fontSize: 16 }}>Compare</Text>
+                </Pressable>
                 <Pressable accessibilityRole="button" accessibilityLabel="Open settings" onPress={() => navigation.navigate("Settings")} style={{ paddingHorizontal: 8 }}>
                   <Text style={{ fontSize: 16 }}>Settings</Text>
                 </Pressable>
@@ -48,6 +53,7 @@ export default function App() {
         />
         <Stack.Screen name="Subject" component={SubjectScreen} options={({ route }) => ({ title: route.params.name })} />
         <Stack.Screen name="Alerts" component={AlertsScreen} options={{ title: "Trust alerts" }} />
+        <Stack.Screen name="Compare" component={CompareScreen} options={{ title: "Compare" }} />
         <Stack.Screen name="Settings" component={SettingsScreen} options={{ title: "Settings" }} />
       </Stack.Navigator>
     </NavigationContainer>

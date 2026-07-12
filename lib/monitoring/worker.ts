@@ -1,5 +1,6 @@
 import { calculateAndPersistTrustScore } from "@/lib/trust/service";
 import { enqueueScoreDropAlert } from "@/lib/mobile/service";
+import { deliverQueuedAlerts } from "@/lib/mobile/push";
 import { claimMonitoringRun, claimOutboxEvent, completeMonitoringRun, completeOutboxEvent, queueDueMonitoringRuns } from "./service";
 
 /** Connectors run in a separately deployed worker. The default executor never makes target-network calls. */
@@ -14,5 +15,6 @@ export async function runMonitoringTick(workerId = `in-process-${process.pid}`) 
       await completeOutboxEvent({ eventId: event.id });
     } catch (error) { await completeOutboxEvent({ eventId: event.id, error: error instanceof Error ? error.message : "Unknown outbox consumer error" }); }
   }
-  return { queuedRunIds, claimedRunId: run?.id ?? null, claimedEventId: event?.id ?? null };
+  const pushDelivery = await deliverQueuedAlerts();
+  return { queuedRunIds, claimedRunId: run?.id ?? null, claimedEventId: event?.id ?? null, pushDelivery };
 }

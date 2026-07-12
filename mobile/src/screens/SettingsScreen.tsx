@@ -17,8 +17,8 @@ export function SettingsScreen() {
       if (!enabled) { setStatus("Push disabled on this device."); return; }
       const permission = await Notifications.requestPermissionsAsync();
       if (!permission.granted) { setPushEnabled(false); setStatus("Notification permission was not granted."); return; }
-      const token = await Notifications.getDevicePushTokenAsync();
-      await api.registerDevice({ platform: Platform.OS === "ios" ? "ios" : "android", pushToken: String(token.data), pushEnabled: true, appVersion: "0.1.0" });
+      const token = await Notifications.getExpoPushTokenAsync();
+      await api.registerDevice({ platform: Platform.OS === "ios" ? "ios" : "android", pushToken: token.data, pushEnabled: true, appVersion: "0.1.0" });
       setStatus("Push notifications registered. Payloads never contain sensitive content; details load over the authenticated API.");
     } catch (caught) {
       setPushEnabled(false);
