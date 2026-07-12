@@ -3,6 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { auditEvents, sbomComponents, securityAdvisories, securityFindings, softwareBillsOfMaterials } from "@/db/schema";
 import { db } from "@/lib/db/client";
+import { enqueueTrustAlerts } from "@/lib/mobile/service";
 import { advisoryInputSchema, findingAdjudicationSchema, findingInputSchema, sbomInputSchema, type AdvisoryInput } from "./schemas";
 
 export function sha256(value: string | Uint8Array) { return createHash("sha256").update(value).digest("hex"); }
@@ -18,11 +19,14 @@ export async function upsertAdvisory(input: AdvisoryInput, actor: { userId: stri
 
 export async function upsertFinding(input: unknown, actor: { userId: string; organisationId: string }) {
   const parsed = findingInputSchema.parse(input); const now = new Date();
-  return db.transaction(async (tx) => {
+  const row = await db.transaction(async (tx) => {
     const [row] = await tx.insert(securityFindings).values({ id: uuidv7(), ...parsed, rawSnapshot: { ...parsed.rawSnapshot, fetchedAt: parsed.rawSnapshot.fetchedAt.toISOString() }, firstObservedAt: now, lastObservedAt: now }).onConflictDoUpdate({ target: [securityFindings.subjectType, securityFindings.subjectId, securityFindings.scanner, securityFindings.fingerprint], set: { advisoryId: parsed.advisoryId, title: parsed.title, severity: parsed.severity, affectedComponent: parsed.affectedComponent, affectedVersion: parsed.affectedVersion, remediation: parsed.remediation, observed: parsed.observed, rawSnapshot: { ...parsed.rawSnapshot, fetchedAt: parsed.rawSnapshot.fetchedAt.toISOString() }, lastObservedAt: now, updatedAt: now } }).returning();
     await tx.insert(auditEvents).values({ organisationId: actor.organisationId, actorUserId: actor.userId, action: "security.finding_observed", resourceType: "security_finding", resourceId: row.id, metadata: { scanner: row.scanner, fingerprint: row.fingerprint } });
     return row;
   });
+  // First observation only — re-observations of a known finding do not page subscribers.
+  if (row.firstObservedAt.getTime() === row.lastObservedAt.getTime()) await enqueueTrustAlerts({ subjectType: row.subjectType, subjectId: row.subjectId, kind: "new_finding", severity: row.severity });
+  return row;
 }
 
 export async function adjudicateFinding(input: { findingId: string; status: "accepted_risk" | "false_positive" | "resolved" | "not_affected"; reason: string; actor: { userId: string; organisationId: string } }) {

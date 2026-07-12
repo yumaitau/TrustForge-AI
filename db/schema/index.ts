@@ -11,3 +11,4 @@ export * from "./enterprise";
 export * from "./compliance";
 export * from "./marketplace";
 export * from "./mobile";
+export * from "./research";

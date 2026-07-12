@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 import { alertPreferences, mobileDevices, mobileFavorites, trustAlerts } from "@/db/schema";
 import { db } from "@/lib/db/client";
+import { scoreHistory } from "@/lib/trust/service";
 import { alertMatchesPreference, ALERT_KINDS, type TrustChangeEvent } from "./alerts";
 
 const subjectTypes = ["company", "product", "mcp_server", "skill", "agent", "model", "api"] as const;
@@ -65,6 +66,15 @@ export async function enqueueTrustAlerts(input: unknown) {
   const matching = preferences.filter((preference) => alertMatchesPreference(preference, event));
   if (matching.length === 0) return [];
   return db.insert(trustAlerts).values(matching.map((preference) => ({ id: uuidv7(), userId: preference.userId, subjectType: event.subjectType, subjectId: event.subjectId, kind: event.kind, payload: { scoreDelta: event.scoreDelta, severity: event.severity } }))).returning();
+}
+
+/** Called after a score is persisted; alerts fire only when the score decreased. */
+export async function enqueueScoreDropAlert(subjectType: (typeof subjectTypes)[number], subjectId: string) {
+  const history = await scoreHistory(subjectType, subjectId, 2);
+  if (history.length < 2) return [];
+  const delta = Number(history[0].score) - Number(history[1].score);
+  if (delta >= 0) return [];
+  return enqueueTrustAlerts({ subjectType, subjectId, kind: "score_drop", scoreDelta: Number(delta.toFixed(2)) });
 }
 
 export async function pendingAlerts(userId: string, limit = 100) {

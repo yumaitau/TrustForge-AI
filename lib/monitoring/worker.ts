@@ -1,4 +1,5 @@
 import { calculateAndPersistTrustScore } from "@/lib/trust/service";
+import { enqueueScoreDropAlert } from "@/lib/mobile/service";
 import { claimMonitoringRun, claimOutboxEvent, completeMonitoringRun, completeOutboxEvent, queueDueMonitoringRuns } from "./service";
 
 /** Connectors run in a separately deployed worker. The default executor never makes target-network calls. */
@@ -9,7 +10,7 @@ export async function runMonitoringTick(workerId = `in-process-${process.pid}`) 
   if (event) {
     try {
       const payload = event.payload as { subjectType?: "company" | "product" | "mcp_server" | "skill" | "agent" | "model" | "api"; subjectId?: string };
-      if (event.eventType.startsWith("monitoring.") && payload.subjectType && payload.subjectId) await calculateAndPersistTrustScore(payload.subjectType, payload.subjectId);
+      if (event.eventType.startsWith("monitoring.") && payload.subjectType && payload.subjectId) { await calculateAndPersistTrustScore(payload.subjectType, payload.subjectId); await enqueueScoreDropAlert(payload.subjectType, payload.subjectId); }
       await completeOutboxEvent({ eventId: event.id });
     } catch (error) { await completeOutboxEvent({ eventId: event.id, error: error instanceof Error ? error.message : "Unknown outbox consumer error" }); }
   }

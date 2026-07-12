@@ -49,3 +49,5 @@ export const orderStatusEnum = pgEnum("order_status", ["pending", "paid", "refun
 export const mobilePlatformEnum = pgEnum("mobile_platform", ["ios", "android"]);
 export const alertKindEnum = pgEnum("alert_kind", ["score_drop", "new_finding", "verification_change"]);
 export const alertStatusEnum = pgEnum("alert_status", ["queued", "sent", "failed"]);
+export const researchStatusEnum = pgEnum("research_status", ["draft", "submitted", "in_review", "approved", "in_progress", "completed", "rejected", "promoted"]);
+export const researchReviewKindEnum = pgEnum("research_review_kind", ["ethics", "security"]);

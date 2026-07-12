@@ -12,6 +12,8 @@ export const ACTIONS = {
   monitoringManage: "monitoring:manage",
   marketplaceSell: "marketplace:sell",
   marketplaceManage: "marketplace:manage",
+  researchPropose: "research:propose",
+  researchManage: "research:manage",
 } as const;
 
 export type Action = (typeof ACTIONS)[keyof typeof ACTIONS];
@@ -28,6 +30,8 @@ export const PERMISSIONS: Readonly<Record<Action, readonly MemberRole[]>> = {
   [ACTIONS.monitoringManage]: ["owner", "admin", "analyst"],
   [ACTIONS.marketplaceSell]: ["owner", "admin", "analyst"],
   [ACTIONS.marketplaceManage]: ["owner", "admin"],
+  [ACTIONS.researchPropose]: ["owner", "admin", "analyst"],
+  [ACTIONS.researchManage]: ["owner", "admin"],
 };
 
 export function isPermitted(action: Action, role: MemberRole) {
