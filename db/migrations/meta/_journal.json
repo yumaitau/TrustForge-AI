@@ -36,6 +36,13 @@
       "when": 1783839787190,
       "tag": "0004_last_betty_ross",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1783840692317,
+      "tag": "0005_spooky_jimmy_woo",
+      "breakpoints": true
     }
   ]
 }

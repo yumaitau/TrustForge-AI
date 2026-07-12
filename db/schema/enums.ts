@@ -35,3 +35,6 @@ export const monitoringTargetTypeEnum = pgEnum("monitoring_target_type", ["relea
 export const monitoringRunStatusEnum = pgEnum("monitoring_run_status", ["queued", "running", "succeeded", "failed", "dead_lettered"]);
 export const aiEvaluationKindEnum = pgEnum("ai_evaluation_kind", ["prompt_injection", "data_retention", "training_usage", "jailbreak_resilience", "permission_model", "tool_safety", "responsible_ai"]);
 export const aiEvaluationOutcomeEnum = pgEnum("ai_evaluation_outcome", ["pass", "fail", "inconclusive", "not_applicable"]);
+export const procurementStatusEnum = pgEnum("procurement_status", ["draft", "submitted", "assessing", "approved", "rejected", "cancelled", "expired"]);
+export const decisionTypeEnum = pgEnum("decision_type", ["approve", "reject", "request_changes", "grant_exception"]);
+export const classificationEnum = pgEnum("classification", ["public", "internal", "confidential", "restricted"]);
