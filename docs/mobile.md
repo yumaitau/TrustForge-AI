@@ -34,4 +34,4 @@ Core lookup screens must meet platform accessibility requirements (VoiceOver/Tal
 
 ## Status and next steps
 
-The server backbone, deep-link configuration, alert routing, and API contracts are shipped and tested. The app clients (React Native/Expo sharing the REST contracts, or Swift/Kotlin native) are the remaining deliverable, tracked in issue #27, followed by the mobile security review. Future: barcode/package scanning, field evidence capture, wallet credentials, mobile admin approvals.
+The server backbone, deep-link configuration, alert routing, and API contracts are shipped and tested. The Expo/React Native client lives in `mobile/` (see `mobile/README.md`): accessible search and trust-profile screens, favorites, alert inbox with acknowledgement, push registration, deep-link routing matching the well-known paths, and secure-storage-only local state. Outstanding before store submission: passkey sign-in UI, the APNs/FCM delivery worker, the compare screen, and the mobile security review. Future: barcode/package scanning, field evidence capture, wallet credentials, mobile admin approvals.

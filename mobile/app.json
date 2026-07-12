@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "TrustForge",
+    "slug": "trustforge",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "scheme": "trustforge",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "bundleIdentifier": "au.trustforge.app",
+      "supportsTablet": true,
+      "associatedDomains": ["applinks:trustforge.au", "webcredentials:trustforge.au"],
+      "infoPlist": { "ITSAppUsesNonExemptEncryption": false }
+    },
+    "android": {
+      "package": "au.trustforge.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [{ "scheme": "https", "host": "trustforge.au", "pathPrefix": "/registry" }, { "scheme": "https", "host": "trustforge.au", "pathPrefix": "/search" }],
+          "category": ["BROWSABLE", "DEFAULT"]
+        }
+      ]
+    },
+    "plugins": ["expo-secure-store", "expo-notifications"]
+  }
+}
