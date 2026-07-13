@@ -28,6 +28,30 @@ export async function submitReview(raw: unknown, authorUserId: string) {
   return result;
 }
 
+/** Maps a moderator decision on a fraud-flagged review to its next status. Pure and unit-tested. */
+export function resolveReviewDecision(currentStatus: string, decision: "publish" | "reject") {
+  if (currentStatus !== "pending") throw new Error("Only pending reviews can be adjudicated");
+  return decision === "publish" ? { status: "published" as const, publish: true } : { status: "rejected" as const, publish: false };
+}
+
+/**
+ * Adjudicates a review that fraud heuristics held in `pending`: publishes or rejects it,
+ * resolves the fraud signals recorded against it, and (on publish) awards the author their
+ * publication reputation. Without this, flagged reviews and their signals never closed out.
+ */
+export async function adjudicateFlaggedReview(input: { reviewId: string; moderatorUserId: string; decision: "publish" | "reject" }) {
+  const result = await db.transaction(async (tx) => {
+    const [review] = await tx.select().from(reviews).where(and(eq(reviews.id, input.reviewId), isNull(reviews.deletedAt))).limit(1);
+    if (!review) throw new Error("Review not found");
+    const next = resolveReviewDecision(review.status, input.decision);
+    const [updated] = await tx.update(reviews).set({ status: next.status, publishedAt: next.publish ? new Date() : null, updatedAt: new Date() }).where(eq(reviews.id, review.id)).returning();
+    await tx.update(fraudSignals).set({ resolvedAt: new Date() }).where(and(eq(fraudSignals.subjectType, "review"), eq(fraudSignals.subjectId, review.id), isNull(fraudSignals.resolvedAt)));
+    return { review: updated, publish: next.publish };
+  });
+  if (result.publish) await recordReputation({ userId: result.review.authorUserId, event: "review_published", reason: "Structured review published after moderation", sourceType: "review", sourceId: result.review.id });
+  return result.review;
+}
+
 export async function voteOnReview(input: { reviewId: string; userId: string; helpful: boolean }) {
   const [review] = await db.select({ authorUserId: reviews.authorUserId }).from(reviews).where(eq(reviews.id, input.reviewId)).limit(1);
   if (!review) throw new Error("Review not found");
