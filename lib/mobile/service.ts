@@ -1,4 +1,4 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 import { alertPreferences, mobileDevices, mobileFavorites, trustAlerts } from "@/db/schema";
@@ -14,10 +14,23 @@ export const preferenceSchema = subject.extend({ scoreDrops: z.boolean().default
 export const favoriteSchema = subject.extend({ label: z.string().max(120).optional() });
 export const trustChangeEventSchema = subject.extend({ kind: z.enum(ALERT_KINDS), scoreDelta: z.number().optional(), severity: z.enum(["unknown", "none", "low", "medium", "high", "critical"]).optional() });
 
+export const DEVICE_LIMIT_PER_USER = 10;
+
+/** Device ids beyond the per-user cap, given ids ordered most-recently-seen first. */
+export function overflowDeviceIds(orderedNewestFirst: string[], limit = DEVICE_LIMIT_PER_USER) {
+  return orderedNewestFirst.slice(limit);
+}
+
 export async function registerDevice(input: unknown, userId: string) {
   const parsed = deviceSchema.parse(input);
-  const [device] = await db.insert(mobileDevices).values({ id: uuidv7(), userId, ...parsed })
-    .onConflictDoUpdate({ target: [mobileDevices.userId, mobileDevices.pushToken], set: { platform: parsed.platform, deviceName: parsed.deviceName, appVersion: parsed.appVersion, pushEnabled: parsed.pushEnabled, lastSeenAt: new Date() } }).returning();
+  const now = new Date();
+  const [device] = await db.insert(mobileDevices).values({ id: uuidv7(), userId, lastSeenAt: now, ...parsed })
+    .onConflictDoUpdate({ target: [mobileDevices.userId, mobileDevices.pushToken], set: { platform: parsed.platform, deviceName: parsed.deviceName, appVersion: parsed.appVersion, pushEnabled: parsed.pushEnabled, lastSeenAt: now } }).returning();
+  // Cap devices per user, evicting the least-recently-seen, so one account cannot register
+  // unbounded devices and make push fan-out O(n).
+  const owned = await db.select({ id: mobileDevices.id }).from(mobileDevices).where(eq(mobileDevices.userId, userId)).orderBy(desc(mobileDevices.lastSeenAt));
+  const stale = overflowDeviceIds(owned.map((row) => row.id));
+  if (stale.length) await db.delete(mobileDevices).where(and(eq(mobileDevices.userId, userId), inArray(mobileDevices.id, stale)));
   return device;
 }
 
