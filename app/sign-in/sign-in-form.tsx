@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/client";
 
@@ -8,6 +8,8 @@ export function SignInForm({ nextPath }: { nextPath: string }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
+  const errorRef = useRef<HTMLParagraphElement>(null);
+  useEffect(() => { if (error) errorRef.current?.focus(); }, [error]);
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -30,10 +32,10 @@ export function SignInForm({ nextPath }: { nextPath: string }) {
 
   return (
     <form className="mt-9 space-y-5 border-y border-[var(--line)] py-8" onSubmit={submit} noValidate>
-      <div><label htmlFor="email" className="text-sm font-medium">Work email</label><input required id="email" name="email" type="email" autoComplete="email" className="field mt-2" /></div>
-      <div><label htmlFor="password" className="text-sm font-medium">Password</label><input required minLength={14} id="password" name="password" type="password" autoComplete="current-password" className="field mt-2" /></div>
+      <div><label htmlFor="email" className="text-sm font-medium">Work email</label><input required id="email" name="email" type="email" autoComplete="email" className="field mt-2" aria-invalid={error ? true : undefined} aria-describedby={error ? "form-error" : undefined} /></div>
+      <div><label htmlFor="password" className="text-sm font-medium">Password</label><input required minLength={14} id="password" name="password" type="password" autoComplete="current-password" className="field mt-2" aria-invalid={error ? true : undefined} aria-describedby={error ? "form-error" : undefined} /></div>
       <label className="muted flex items-center gap-2 text-sm"><input name="remember" type="checkbox" className="size-4 accent-[var(--accent)]" /> Keep me signed in on this device</label>
-      {error ? <p role="alert" className="rounded-md bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)]">{error}</p> : null}
+      {error ? <p ref={errorRef} id="form-error" tabIndex={-1} role="alert" className="rounded-md bg-[var(--danger-soft)] p-3 text-sm text-[var(--danger)] outline-none">{error}</p> : null}
       <button className="button button-primary w-full" type="submit" disabled={pending}>{pending ? "Signing in…" : "Sign in"}</button>
       <button className="button button-secondary w-full" type="button" disabled={pending} onClick={async () => {
         setPending(true); setError(null);
