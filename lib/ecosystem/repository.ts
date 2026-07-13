@@ -1,4 +1,4 @@
-import { and, desc, eq, ilike, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, ilike, isNull, or, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { agents, apiOfferings, mcpDependencies, mcpReleases, mcpServers, models, products, skills, trustScores } from "@/db/schema";
 import { db } from "@/lib/db/client";
@@ -41,9 +41,27 @@ export async function createAgent(input: AgentInput) { const product = commonPro
 export async function createModel(input: ModelInput) { const product = commonProduct(input, "model"); return db.transaction(async (tx) => { const [productRow] = await tx.insert(products).values(product).returning(); const [profile] = await tx.insert(models).values({ id: uuidv7(), productId: product.id, family: input.family, providerModelId: input.providerModelId, modalities: input.modalities, contextWindow: input.contextWindow, openWeights: input.openWeights, license: input.license, trainingDataSummary: input.trainingDataSummary, safetyDocumentationUrl: input.safetyDocumentationUrl }).returning(); return { product: productRow, profile }; }); }
 export async function createApiOffering(input: ApiOfferingInput) { const product = commonProduct(input, "api"); return db.transaction(async (tx) => { const [productRow] = await tx.insert(products).values(product).returning(); const [profile] = await tx.insert(apiOfferings).values({ id: uuidv7(), productId: product.id, baseUrl: input.baseUrl, authenticationMethods: input.authenticationMethods, protocols: input.protocols, dataResidencyRegions: input.dataResidencyRegions, retentionSummary: input.retentionSummary, trainingUsage: input.trainingUsage, slaUrl: input.slaUrl, pricingUrl: input.pricingUrl }).returning(); return { product: productRow, profile }; }); }
 
-export async function listEcosystemProfiles(type: "skill" | "agent" | "model" | "api", query?: string) {
-  const filters = [eq(products.type, type), isNull(products.deletedAt)]; if (query) filters.push(ilike(products.name, `%${query}%`));
-  return db.select().from(products).where(and(...filters)).orderBy(desc(products.updatedAt)).limit(100);
+export type EcosystemType = "skill" | "agent" | "model" | "api";
+const ecosystemProfileTables = { skill: skills, agent: agents, model: models, api: apiOfferings } as const;
+const boundedLimit = (limit?: number) => Math.min(Math.max(limit ?? 20, 1), 100);
+
+/** Cursor-paginated (by id) ecosystem list, matching the company/product registry contract. */
+export async function listEcosystemProfiles(type: EcosystemType, input: { query?: string; cursor?: string; limit?: number } = {}) {
+  const filters = [eq(products.type, type), isNull(products.deletedAt)];
+  if (input.cursor) filters.push(gt(products.id, input.cursor));
+  if (input.query) filters.push(ilike(products.name, `%${input.query}%`));
+  const limit = boundedLimit(input.limit);
+  const rows = await db.select().from(products).where(and(...filters)).orderBy(asc(products.id)).limit(limit + 1);
+  return { items: rows.slice(0, limit), nextCursor: rows.length > limit ? rows[limit - 1]?.id ?? null : null };
+}
+
+/** Fetches a single ecosystem subject with its typed profile by id or slug. */
+export async function getEcosystemProfile(type: EcosystemType, idOrSlug: string) {
+  const [product] = await db.select().from(products).where(and(eq(products.type, type), isNull(products.deletedAt), or(eq(products.id, idOrSlug), eq(products.slug, idOrSlug)))).limit(1);
+  if (!product) return null;
+  const table = ecosystemProfileTables[type];
+  const [profile] = await db.select().from(table).where(eq(table.productId, product.id)).limit(1);
+  return { product, profile: profile ?? null };
 }
 
 export async function addMcpRelease(input: { mcpServerId: string; version: string; releaseUrl?: string; commitSha?: string; signatureVerified?: boolean; sbomUrl?: string; publishedAt: Date }) {
