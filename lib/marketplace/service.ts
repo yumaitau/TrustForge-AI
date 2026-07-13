@@ -5,6 +5,7 @@ import { auditEvents, listings, marketplaceDisputes, marketplaceOrders, offers, 
 import { db } from "@/lib/db/client";
 import { rankListings, type RankableListing } from "./ranking";
 import { calculateTax } from "./tax";
+import { canResolveDispute, isDisputeParty } from "./authorization";
 
 type Actor = { userId: string; organisationId: string };
 const subjectTypes = ["company", "product", "mcp_server", "skill", "agent", "model", "api"] as const;
@@ -97,8 +98,23 @@ export async function createOrder(input: unknown, actor: Actor) {
   return order;
 }
 
+/** Organisation that owns the seller profile behind a listing, or null if the listing is gone. */
+async function sellerOrganisationForListing(listingId: string) {
+  const [row] = await db.select({ organisationId: sellerProfiles.organisationId }).from(listings).innerJoin(sellerProfiles, eq(listings.sellerId, sellerProfiles.id)).where(eq(listings.id, listingId)).limit(1);
+  return row?.organisationId ?? null;
+}
+
 export async function openDispute(input: unknown, actor: Actor) {
   const parsed = disputeSchema.parse(input);
+  const sellerOrganisationId = await sellerOrganisationForListing(parsed.listingId);
+  if (!sellerOrganisationId) throw new Error("Listing not found");
+  let buyerOrganisationId: string | null = null;
+  if (parsed.orderId) {
+    const [order] = await db.select({ organisationId: marketplaceOrders.organisationId, listingId: offers.listingId }).from(marketplaceOrders).innerJoin(offers, eq(marketplaceOrders.offerId, offers.id)).where(eq(marketplaceOrders.id, parsed.orderId)).limit(1);
+    if (!order || order.listingId !== parsed.listingId) throw new Error("Order does not belong to this listing");
+    buyerOrganisationId = order.organisationId;
+  }
+  if (!isDisputeParty(actor.organisationId, sellerOrganisationId, buyerOrganisationId)) throw new Error("Only a party to the listing or order can open a dispute");
   const [dispute] = await db.insert(marketplaceDisputes).values({ id: uuidv7(), ...parsed, raisedByUserId: actor.userId }).returning();
   await audit(db, actor, "marketplace.dispute_opened", "marketplace_dispute", dispute.id, { listingId: parsed.listingId, kind: parsed.kind });
   return dispute;
@@ -106,8 +122,10 @@ export async function openDispute(input: unknown, actor: Actor) {
 
 export async function resolveDispute(id: string, input: unknown, actor: Actor) {
   const parsed = disputeResolutionSchema.parse(input);
+  const [existing] = await db.select({ listingId: marketplaceDisputes.listingId }).from(marketplaceDisputes).where(eq(marketplaceDisputes.id, id)).limit(1);
+  if (!existing) throw new Error("Dispute not found");
+  if (!canResolveDispute(actor.organisationId, await sellerOrganisationForListing(existing.listingId))) throw new Error("Only the listing's seller organisation can resolve this dispute");
   const [dispute] = await db.update(marketplaceDisputes).set({ status: parsed.status, resolution: parsed.resolution, resolvedByUserId: parsed.status === "under_review" ? undefined : actor.userId, resolvedAt: parsed.status === "under_review" ? undefined : new Date() }).where(eq(marketplaceDisputes.id, id)).returning();
-  if (!dispute) throw new Error("Dispute not found");
   await audit(db, actor, "marketplace.dispute_updated", "marketplace_dispute", id, { status: parsed.status });
   return dispute;
 }
