@@ -3,6 +3,7 @@ import { v7 as uuidv7 } from "uuid";
 import { auditEvents, eventOutbox, monitoringRuns, monitoringSubscriptions, monitoringTargets } from "@/db/schema";
 import { db } from "@/lib/db/client";
 import { monitoringTargetInputSchema, subscriptionInputSchema } from "@/lib/security/schemas";
+import { hasStateChanged } from "./executor";
 
 const MAX_ATTEMPTS = 5;
 const retryDelay = (attempt: number) => Math.min(60 * 60 * 1_000, 30_000 * 2 ** Math.max(0, attempt - 1));
@@ -46,12 +47,25 @@ export async function claimMonitoringRun(workerId: string, now = new Date()) {
   return run ? { ...run, workerId } : null;
 }
 
+export async function getMonitoringTarget(targetId: string) {
+  const [target] = await db.select().from(monitoringTargets).where(eq(monitoringTargets.id, targetId)).limit(1);
+  return target ?? null;
+}
+
+/** Most recent successfully observed state for a target, used to seed the next run's beforeState. */
+export async function latestObservedState(targetId: string, excludeRunId?: string) {
+  const [previous] = await db.select({ afterState: monitoringRuns.afterState }).from(monitoringRuns)
+    .where(and(eq(monitoringRuns.targetId, targetId), eq(monitoringRuns.status, "succeeded"), excludeRunId ? sql`${monitoringRuns.id} <> ${excludeRunId}` : sql`true`))
+    .orderBy(sql`${monitoringRuns.completedAt} desc`).limit(1);
+  return previous?.afterState ?? null;
+}
+
 export async function completeMonitoringRun(input: { runId: string; beforeState: Record<string, unknown>; afterState: Record<string, unknown>; error?: string }) {
   const [run] = await db.select().from(monitoringRuns).where(eq(monitoringRuns.id, input.runId)).limit(1); if (!run) throw new Error("Monitoring run not found");
   const now = new Date(); const failed = Boolean(input.error); const deadLetter = failed && run.attempt >= MAX_ATTEMPTS;
   const [updated] = await db.update(monitoringRuns).set({ status: deadLetter ? "dead_lettered" : failed ? "failed" : "succeeded", beforeState: input.beforeState, afterState: input.afterState, error: input.error, completedAt: now, leaseExpiresAt: null }).where(eq(monitoringRuns.id, input.runId)).returning();
   if (failed && !deadLetter) await db.update(monitoringRuns).set({ status: "queued", leaseExpiresAt: new Date(now.getTime() + retryDelay(run.attempt)), completedAt: null }).where(eq(monitoringRuns.id, input.runId));
-  if (!failed && JSON.stringify(input.beforeState) !== JSON.stringify(input.afterState)) {
+  if (!failed && hasStateChanged(input.beforeState, input.afterState)) {
     const [target] = await db.select().from(monitoringTargets).where(eq(monitoringTargets.id, run.targetId)).limit(1);
     if (target) await enqueueEvent({ organisationId: target.organisationId, eventType: `monitoring.${target.targetType}.changed`, aggregateType: "monitoring_target", aggregateId: target.id, deduplicationKey: `${input.runId}:changed`, payload: { subjectType: target.subjectType, subjectId: target.subjectId, target: target.target, before: input.beforeState, after: input.afterState, runId: input.runId } });
   }
