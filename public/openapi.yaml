@@ -184,8 +184,126 @@ paths:
   /ai-evaluations/runs:
     get: { operationId: listAiEvaluationRuns, summary: List versioned lab results for a subject, responses: { "200": { description: Evaluation runs } } }
     post: { operationId: recordAiEvaluationRun, summary: Record a controlled or chain-of-custody imported evaluation run, responses: { "201": { description: Evaluation run stored } } }
+  /skills/{id}:
+    get: { operationId: getSkill, summary: Get a skill with its profile by id or slug, parameters: [ { in: path, name: id, required: true, schema: { type: string } } ], responses: { "200": { description: Skill profile }, "404": { $ref: "#/components/responses/NotFound" } } }
+  /agents/{id}:
+    get: { operationId: getAgent, summary: Get an agent with its profile by id or slug, parameters: [ { in: path, name: id, required: true, schema: { type: string } } ], responses: { "200": { description: Agent profile }, "404": { $ref: "#/components/responses/NotFound" } } }
+  /models/{id}:
+    get: { operationId: getModel, summary: Get a model with its profile by id or slug, parameters: [ { in: path, name: id, required: true, schema: { type: string } } ], responses: { "200": { description: Model profile }, "404": { $ref: "#/components/responses/NotFound" } } }
+  /apis/{id}:
+    get: { operationId: getApi, summary: Get an API offering with its profile by id or slug, parameters: [ { in: path, name: id, required: true, schema: { type: string } } ], responses: { "200": { description: API profile }, "404": { $ref: "#/components/responses/NotFound" } } }
+  /trust-scores/{subjectType}/{subjectId}/recalculate:
+    post: { operationId: recalculateTrustScore, summary: Recalculate and persist a subject's trust score, parameters: [ { in: path, name: subjectType, required: true, schema: { type: string } }, { in: path, name: subjectId, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Score recalculated }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /claims/{id}/revoke:
+    post: { operationId: revokeVendorClaim, summary: Revoke a verified vendor claim, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Claim revoked }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /evidence/{id}/challenges:
+    post: { operationId: challengeEvidence, summary: Challenge a piece of evidence, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "201": { description: Challenge recorded }, "401": { $ref: "#/components/responses/Unauthorized" }, "422": { $ref: "#/components/responses/ValidationError" } } }
+  /reviews/{id}/vote:
+    post: { operationId: voteOnReview, summary: Vote a published review helpful or not, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Vote recorded }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+  /reviews/{id}/appeal:
+    post: { operationId: appealReview, summary: Appeal a moderated review, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Appeal opened }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+  /reviews/{id}/adjudicate:
+    post: { operationId: adjudicateReview, summary: Publish or reject a fraud-flagged review, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Review adjudicated }, "401": { $ref: "#/components/responses/Unauthorized" }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /edits:
+    post: { operationId: submitSuggestedEdit, summary: Suggest an edit to a registry subject, responses: { "201": { description: Edit submitted }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+  /edits/{id}/adjudicate:
+    post: { operationId: adjudicateSuggestedEdit, summary: Publish or reject a suggested edit, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Edit adjudicated }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /reports:
+    post: { operationId: reportContent, summary: Report content for moderation, responses: { "201": { description: Report filed } } }
+  /moderation/{id}/transition:
+    post: { operationId: transitionModerationCase, summary: Transition a moderation case, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Case updated }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /recommendations:
+    post: { operationId: recommendForQuestion, summary: Explainable recommendation for a natural-language question, responses: { "200": { description: Ranked recommendation with rationale }, "400": { $ref: "#/components/responses/ValidationError" } } }
+  /mcp-servers/{id}/releases:
+    get: { operationId: listMcpReleases, summary: List releases for an MCP server, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Releases } } }
+    post: { operationId: addMcpRelease, summary: Record an MCP server release, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "201": { description: Release recorded }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /mcp-servers/{id}/dependencies:
+    get: { operationId: listMcpDependencies, summary: List dependencies for an MCP server, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Dependencies } } }
+    post: { operationId: addMcpDependency, summary: Record an MCP server dependency, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "201": { description: Dependency recorded }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /compliance/frameworks:
+    post: { operationId: importComplianceFramework, summary: Import a compliance framework and controls, responses: { "201": { description: Framework imported }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /compliance/assessments:
+    post: { operationId: createComplianceAssessment, summary: Create a compliance assessment, responses: { "201": { description: Assessment created }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /enterprise/catalogues:
+    post: { operationId: createEnterpriseCatalogue, summary: Create an enterprise catalogue, responses: { "201": { description: Catalogue created }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /enterprise/catalogue-entries:
+    post: { operationId: createCatalogueEntry, summary: Add an entry to an enterprise catalogue, responses: { "201": { description: Entry created }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /enterprise/policies:
+    post: { operationId: createEnterprisePolicy, summary: Create an enterprise policy, responses: { "201": { description: Policy created }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /enterprise/requests:
+    get: { operationId: listEnterpriseRequests, summary: List procurement requests, responses: { "200": { description: Requests }, "403": { $ref: "#/components/responses/Forbidden" } } }
+    post: { operationId: createEnterpriseRequest, summary: Raise a procurement request, responses: { "201": { description: Request created }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /enterprise/requests/{id}/decisions:
+    post: { operationId: decideEnterpriseRequest, summary: Record a decision on a procurement request, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "201": { description: Decision recorded }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /enterprise/audit-exports:
+    post: { operationId: createAuditExport, summary: Produce a signed audit evidence export, responses: { "201": { description: Export produced }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /marketplace/sellers:
+    post: { operationId: createSellerProfile, summary: Create a marketplace seller profile, responses: { "201": { description: Seller profile created }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /marketplace/sellers/{id}/status:
+    post: { operationId: setSellerStatus, summary: Change a seller profile status, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Seller status changed }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /marketplace/listings:
+    get: { operationId: listMarketplaceListings, summary: Public ranked marketplace listings, responses: { "200": { description: Organic and sponsored listings } } }
+    post: { operationId: createListing, summary: Create a marketplace listing, responses: { "201": { description: Listing created }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /marketplace/listings/{id}/publish:
+    post: { operationId: publishListing, summary: Publish a draft listing, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Listing published }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /marketplace/offers:
+    post: { operationId: createOffer, summary: Create an offer on a listing, responses: { "201": { description: Offer created }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /marketplace/placements:
+    post: { operationId: createSponsoredPlacement, summary: Create a disclosed sponsored placement, responses: { "201": { description: Placement created }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /marketplace/orders:
+    post: { operationId: createOrder, summary: Place an order against an offer, responses: { "201": { description: Order placed }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+  /marketplace/disputes:
+    post: { operationId: openDispute, summary: Open a dispute as a party to a listing or order, responses: { "201": { description: Dispute opened }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /marketplace/disputes/{id}:
+    patch: { operationId: resolveDispute, summary: Resolve a dispute as the seller organisation, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Dispute updated }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /mobile/devices:
+    post: { operationId: registerDevice, summary: Register a mobile device for push, responses: { "201": { description: Device registered }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+  /mobile/devices/{id}:
+    delete: { operationId: removeDevice, summary: Remove a mobile device, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Device removed }, "404": { $ref: "#/components/responses/NotFound" } } }
+  /mobile/preferences:
+    get: { operationId: listAlertPreferences, summary: List the user's alert preferences, responses: { "200": { description: Alert preferences }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+    put: { operationId: upsertAlertPreference, summary: Upsert an alert preference, responses: { "200": { description: Preference saved }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+  /mobile/favorites:
+    get: { operationId: listFavorites, summary: List the user's favourites, responses: { "200": { description: Favourites }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+    post: { operationId: addFavorite, summary: Add a favourite subject, responses: { "201": { description: Favourite added }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+  /mobile/favorites/{id}:
+    delete: { operationId: removeFavorite, summary: Remove a favourite, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Favourite removed }, "404": { $ref: "#/components/responses/NotFound" } } }
+  /mobile/alerts:
+    get: { operationId: listAlerts, summary: List the user's trust alerts, responses: { "200": { description: Alerts }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+    post: { operationId: enqueueAlert, summary: Enqueue a trust change alert, responses: { "201": { description: Alert enqueued } } }
+  /research/proposals:
+    get: { operationId: listResearchProposals, summary: List research proposals, responses: { "200": { description: Proposals } } }
+    post: { operationId: createResearchProposal, summary: Create a research proposal, responses: { "201": { description: Proposal created }, "401": { $ref: "#/components/responses/Unauthorized" } } }
+  /research/proposals/{id}:
+    patch: { operationId: transitionResearchProposal, summary: Transition a research proposal, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "200": { description: Proposal updated }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /research/proposals/{id}/reviews:
+    post: { operationId: reviewResearchProposal, summary: Record an ethics or security review of a proposal, parameters: [ { in: path, name: id, required: true, schema: { type: string, format: uuid } } ], responses: { "201": { description: Review recorded }, "403": { $ref: "#/components/responses/Forbidden" } } }
+  /operations/offline-bundles/verify:
+    post: { operationId: verifyOfflineBundle, summary: Verify a signed air-gapped offline bundle, responses: { "200": { description: Bundle verification result }, "422": { $ref: "#/components/responses/ValidationError" } } }
 components:
   schemas:
     ProductType:
       type: string
       enum: [application, mcp_server, skill, agent, model, api, developer_tool]
+    Error:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { type: object, additionalProperties: true }
+    CursorPage:
+      type: object
+      required: [items]
+      properties:
+        items: { type: array, items: { type: object, additionalProperties: true } }
+        nextCursor: { type: [string, "null"], format: uuid }
+  responses:
+    Unauthorized: { description: Authentication required, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    Forbidden: { description: Permission denied, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    NotFound: { description: Resource not found, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
+    ValidationError: { description: Request failed validation, content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } } }
