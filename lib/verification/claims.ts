@@ -11,13 +11,17 @@ const digestHex = (value: string) => digest(value).toString("hex");
 
 export async function createVendorClaim(input: { subjectType: "company" | "product"; subjectId: string; organisationId: string; userId: string; method: ClaimMethod; target?: string; provider?: string; publicKey?: string }) {
   const challenge = randomBytes(32).toString("base64url");
+  // The email path proves mailbox control with a server-generated secret code that is
+  // delivered out-of-band to an address at the claimed domain. Only its hash is stored,
+  // and it is never exposed on the claim record — knowing the code is the proof.
+  const code = input.method === "email" ? randomBytes(9).toString("base64url") : undefined;
   const [claim] = await db.insert(vendorClaims).values({
     id: uuidv7(), subjectType: input.subjectType, subjectId: input.subjectId, organisationId: input.organisationId,
     requestedByUserId: input.userId, method: input.method, challengeHash: digestHex(challenge),
-    challengeMetadata: { target: input.target, provider: input.provider, publicKey: input.publicKey },
+    challengeMetadata: { target: input.target, provider: input.provider, publicKey: input.publicKey, codeHash: code ? digestHex(code) : undefined },
     expiresAt: new Date(Date.now() + 30 * 60_000),
   }).returning();
-  return { claim, challenge };
+  return { claim, challenge, code };
 }
 
 export function verifyChallengeHash(challenge: string, expectedHex: string) {
@@ -25,14 +29,22 @@ export function verifyChallengeHash(challenge: string, expectedHex: string) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
-export async function verifyVendorClaim(claimId: string, proof: { challenge: string; code?: string; signature?: string; providerAttestation?: string }) {
+/** Timing-safe comparison of a presented secret against a stored SHA-256 hex digest. */
+export function verifySecretHash(secret: string | undefined, expectedHex: string | undefined) {
+  if (!secret || !expectedHex) return false;
+  return verifyChallengeHash(secret, expectedHex);
+}
+
+export async function verifyVendorClaim(claimId: string, proof: { challenge?: string; code?: string; signature?: string; providerAttestation?: string }) {
   const [claim] = await db.select().from(vendorClaims).where(eq(vendorClaims.id, claimId)).limit(1);
   if (!claim || claim.status !== "pending") throw new Error("Claim is not pending");
   if (claim.expiresAt <= new Date()) { await db.update(vendorClaims).set({ status: "expired", updatedAt: new Date() }).where(eq(vendorClaims.id, claimId)); throw new Error("Claim expired"); }
-  if (!verifyChallengeHash(proof.challenge, claim.challengeHash)) throw new Error("Challenge does not match");
+  // Email proves control with the emailed code alone; every other method binds to the
+  // published/attested challenge, so its correlation hash must match first.
+  if (claim.method !== "email" && !(proof.challenge && verifyChallengeHash(proof.challenge, claim.challengeHash))) throw new Error("Challenge does not match");
 
   let verified = false;
-  if (claim.method === "email") verified = proof.code === proof.challenge;
+  if (claim.method === "email") verified = verifySecretHash(proof.code, claim.challengeMetadata.codeHash);
   if (claim.method === "dns" && claim.challengeMetadata.target) {
     const records = (await resolveTxt(claim.challengeMetadata.target)).flat();
     verified = records.includes(`trustforge-verification=${proof.challenge}`);
@@ -44,7 +56,7 @@ export async function verifyVendorClaim(claimId: string, proof: { challenge: str
     const expectedBuffer = Buffer.from(expected); const actualBuffer = Buffer.from(proof.providerAttestation);
     verified = expectedBuffer.length === actualBuffer.length && timingSafeEqual(expectedBuffer, actualBuffer);
   }
-  if (claim.method === "signed_challenge" && claim.challengeMetadata.publicKey && proof.signature) {
+  if (claim.method === "signed_challenge" && claim.challengeMetadata.publicKey && proof.signature && proof.challenge) {
     verified = verifySignature(null, Buffer.from(proof.challenge), claim.challengeMetadata.publicKey, Buffer.from(proof.signature, "base64"));
   }
   const attempt = { at: new Date().toISOString(), outcome: verified ? "verified" : "failed" };

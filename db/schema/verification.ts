@@ -12,7 +12,7 @@ export const vendorClaims = pgTable("vendor_claims", {
   method: claimMethodEnum("method").notNull(),
   status: claimStatusEnum("status").notNull().default("pending"),
   challengeHash: text("challenge_hash").notNull(),
-  challengeMetadata: jsonb("challenge_metadata").$type<{ target?: string; provider?: string; publicKey?: string }>().notNull().default({}),
+  challengeMetadata: jsonb("challenge_metadata").$type<{ target?: string; provider?: string; publicKey?: string; codeHash?: string }>().notNull().default({}),
   attempts: jsonb("attempts").$type<Array<{ at: string; outcome: string }>>().notNull().default([]),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
