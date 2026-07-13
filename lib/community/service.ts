@@ -1,10 +1,15 @@
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { z } from "zod";
 import { fraudSignals, moderationCases, reviews, reviewVotes, suggestedEdits } from "@/db/schema";
 import { db } from "@/lib/db/client";
 import { detectReviewFraud, reviewContentHash } from "@/lib/fraud/detector";
-import { recordReputation, reputationForUser } from "@/lib/reputation/service";
+import { recordReputation, removeReputation, reputationForUser } from "@/lib/reputation/service";
+
+/** A review's helpful reputation reflects whether any helpful vote currently stands. */
+export function helpfulReputationAction(helpfulCount: number): "award" | "revoke" {
+  return helpfulCount > 0 ? "award" : "revoke";
+}
 
 export const reviewInputSchema = z.object({
   subjectType: z.enum(["company", "product", "mcp_server", "skill", "agent", "model", "api"]),
@@ -53,14 +58,16 @@ export async function adjudicateFlaggedReview(input: { reviewId: string; moderat
 }
 
 export async function voteOnReview(input: { reviewId: string; userId: string; helpful: boolean }) {
-  const [review] = await db.select({ authorUserId: reviews.authorUserId }).from(reviews).where(eq(reviews.id, input.reviewId)).limit(1);
+  const [review] = await db.select({ authorUserId: reviews.authorUserId }).from(reviews).where(and(eq(reviews.id, input.reviewId), isNull(reviews.deletedAt))).limit(1);
   if (!review) throw new Error("Review not found");
   if (review.authorUserId === input.userId) throw new Error("Authors cannot vote on their own reviews");
   const reputation = await reputationForUser(input.userId);
   const [vote] = await db.insert(reviewVotes).values({ ...input, weight: String(reputation.weight) }).onConflictDoUpdate({ target: [reviewVotes.reviewId, reviewVotes.userId], set: { helpful: input.helpful, weight: String(reputation.weight) } }).returning();
-  if (input.helpful) {
-    await recordReputation({ userId: review.authorUserId, event: "review_helpful", reason: "Review received a helpful vote", sourceType: "review_vote", sourceId: input.reviewId });
-  }
+  // Reconcile helpful reputation from the current votes so that withdrawing the last
+  // helpful vote reverses the credit instead of leaving it stranded.
+  const [{ helpfulCount }] = await db.select({ helpfulCount: sql<number>`count(*)::int` }).from(reviewVotes).where(and(eq(reviewVotes.reviewId, input.reviewId), eq(reviewVotes.helpful, true)));
+  if (helpfulReputationAction(helpfulCount) === "award") await recordReputation({ userId: review.authorUserId, event: "review_helpful", reason: "Review received a helpful vote", sourceType: "review_vote", sourceId: input.reviewId });
+  else await removeReputation({ userId: review.authorUserId, sourceType: "review_vote", sourceId: input.reviewId });
   return vote;
 }
 
@@ -86,11 +93,21 @@ export async function submitSuggestedEdit(input: { subjectType: "company" | "pro
 export async function adjudicateSuggestedEdit(input: { editId: string; reviewerUserId: string; status: "published" | "rejected" }) {
   const [edit] = await db.update(suggestedEdits).set({ status: input.status, reviewedByUserId: input.reviewerUserId, reviewedAt: new Date() }).where(eq(suggestedEdits.id, input.editId)).returning();
   if (!edit) throw new Error("Suggested edit not found");
+  if (input.status === "published") await recordReputation({ userId: edit.submittedByUserId, event: "edit_accepted", reason: "Suggested edit accepted into the registry", sourceType: "suggested_edit", sourceId: edit.id });
   return edit;
 }
 
 export async function resolveModerationCase(input: { caseId: string; moderatorUserId: string; status: "investigating" | "actioned" | "dismissed" | "resolved"; resolution?: string }) {
   const [moderationCase] = await db.update(moderationCases).set({ status: input.status, assignedToUserId: input.moderatorUserId, resolution: input.resolution, updatedAt: new Date() }).where(eq(moderationCases.id, input.caseId)).returning();
   if (!moderationCase) throw new Error("Moderation case not found");
+  // An upheld (actioned) case has a real reputation consequence: penalise the content
+  // owner and credit the reporter, so violations stop being reputation-free.
+  if (input.status === "actioned") {
+    if (moderationCase.targetType === "review") {
+      const [target] = await db.select({ authorUserId: reviews.authorUserId }).from(reviews).where(eq(reviews.id, moderationCase.targetId)).limit(1);
+      if (target) await recordReputation({ userId: target.authorUserId, event: "penalty", points: -10, reason: "Content upheld as a violation by moderation", sourceType: "moderation_case", sourceId: moderationCase.id });
+    }
+    if (moderationCase.reporterUserId) await recordReputation({ userId: moderationCase.reporterUserId, event: "moderation_upheld", reason: "Report upheld by moderation", sourceType: "moderation_case", sourceId: moderationCase.id });
+  }
   return moderationCase;
 }

@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { resolveReviewDecision } from "./service";
+import { helpfulReputationAction, resolveReviewDecision } from "./service";
+
+describe("helpfulReputationAction", () => {
+  it("awards while helpful votes stand and revokes once the last one is withdrawn", () => {
+    expect(helpfulReputationAction(2)).toBe("award");
+    expect(helpfulReputationAction(1)).toBe("award");
+    // Regression: withdrawing the final helpful vote used to leave the credit stranded.
+    expect(helpfulReputationAction(0)).toBe("revoke");
+  });
+});
 
 describe("resolveReviewDecision", () => {
   it("publishes a pending review", () => {

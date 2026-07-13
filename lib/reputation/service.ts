@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { v7 as uuidv7 } from "uuid";
 import { reputationLedger } from "@/db/schema";
 import { db } from "@/lib/db/client";
@@ -23,4 +23,10 @@ export async function recordReputation(input: { userId: string; event: Reputatio
   const points = input.event === "penalty" ? Math.min(-1, input.points ?? -5) : REPUTATION_POINTS[input.event];
   const [entry] = await db.insert(reputationLedger).values({ id: uuidv7(), ...input, points }).onConflictDoNothing().returning();
   return entry ?? null;
+}
+
+/** Reverses a previously recorded reputation entry (e.g. when a helpful vote is withdrawn). */
+export async function removeReputation(input: { userId: string; sourceType: string; sourceId: string }) {
+  const [removed] = await db.delete(reputationLedger).where(and(eq(reputationLedger.userId, input.userId), eq(reputationLedger.sourceType, input.sourceType), eq(reputationLedger.sourceId, input.sourceId))).returning();
+  return removed ?? null;
 }
