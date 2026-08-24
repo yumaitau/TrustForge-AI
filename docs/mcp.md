@@ -4,9 +4,9 @@ TrustForge implements MCP revision `2025-11-25` using the stable TypeScript SDK.
 
 ## Transports
 
-- `npm run mcp:stdio` starts the local process transport.
-- `npm run mcp:http` starts stateless Streamable HTTP at `http://127.0.0.1:3100/mcp` by default.
-- The HTTP service requires `MCP_API_TOKEN` in production and validates allowed host headers to mitigate DNS rebinding.
+- `npm run mcp:stdio` starts the local process transport on Bun (`bun --bun mcp/stdio.ts`).
+- `npm run mcp:http` starts the Express Streamable HTTP sidecar on Bun 1.4+ (`bun --bun mcp/http.ts`) at `http://127.0.0.1:3100/mcp` by default.
+- The HTTP service binds `MCP_HOST` (default `127.0.0.1`, not all interfaces) and `MCP_PORT`. It requires `MCP_API_TOKEN` in production, compares bearer tokens with `timingSafeEqual`, and validates `MCP_ALLOWED_HOSTS` to mitigate DNS rebinding. `/mcp` is POST-only.
 - Legacy or third-party WebSocket transport can be recorded in the registry, but TrustForge itself uses the current MCP stdio and Streamable HTTP transports.
 
 ## Tools

@@ -19,9 +19,9 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "mcp:stdio": "tsx mcp/stdio.ts",
-    "mcp:http": "tsx mcp/http.ts",
-    "mcp:build": "esbuild mcp/http.ts mcp/stdio.ts --bundle --platform=node --format=esm --outdir=dist/mcp --packages=external",
+    "mcp:stdio": "bun --bun mcp/stdio.ts",
+    "mcp:http": "bun --bun mcp/http.ts",
+    "mcp:build": "bun build mcp/http.ts mcp/stdio.ts --outdir=dist/mcp --target=bun",
     "mcp:smoke": "node scripts/smoke-mcp.mjs"
   },
   "dependencies": {
@@ -52,8 +52,8 @@
     "@types/react": "^19.0.3",
     "@types/react-dom": "^19.0.2",
     "@vitest/coverage-v8": "^4.1.6",
+    "bun": "^1.4.0",
     "drizzle-kit": "^0.31.10",
-    "esbuild": "^0.25.12",
     "eslint": "^9.17.0",
     "eslint-config-next": "16.3.0-canary.21",
     "js-yaml": "^4.3.0",
