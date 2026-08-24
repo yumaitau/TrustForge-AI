@@ -16,7 +16,7 @@ Domain modules may depend on shared primitives. Delivery adapters (web, REST, Gr
 
 ## Deployment model
 
-The web application and API begin in Next.js. PostgreSQL is authoritative storage, Redis is ephemeral coordination and caching, and S3-compatible storage holds evidence artifacts. Workers will consume durable events through an outbox-backed queue in a later milestone.
+The web application and API begin in Next.js on Node.js. The MCP Streamable HTTP sidecar is a separate Express process that runs on Bun 1.4+. PostgreSQL is authoritative storage, Redis is ephemeral coordination and caching, and S3-compatible storage holds evidence artifacts. Workers will consume durable events through an outbox-backed queue in a later milestone.
 
 ## API strategy
 

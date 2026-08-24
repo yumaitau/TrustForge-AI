@@ -6,7 +6,7 @@ This repository is being built incrementally. The current milestone establishes 
 
 ## Local development
 
-Requirements: Node.js 20+, npm, and Docker.
+Requirements: Node.js 20+ for the Next.js app, Bun 1.4+ for the MCP sidecar, npm, and Docker.
 
 ```bash
 cp .env.example .env.local
@@ -25,7 +25,7 @@ To run the complete containerized web and MCP stack after migrating the database
 docker compose up --build
 ```
 
-The MCP Streamable HTTP endpoint is then available at `http://localhost:3100/mcp` and requires `MCP_API_TOKEN`.
+The MCP Streamable HTTP sidecar runs on Bun (`npm run mcp:http`) at `http://localhost:3100/mcp`. `MCP_API_TOKEN` is required in production. The Next.js `dev` / `build` / `start` scripts stay on Node.
 
 ## Quality checks
 
@@ -40,6 +40,7 @@ npm run build
 
 - [Architecture](docs/architecture/README.md)
 - [ADR 0001: Modular monolith](docs/adr/0001-modular-monolith.md)
+- [ADR 0005: MCP Express sidecar on Bun](docs/adr/0005-mcp-express-on-bun.md)
 - [Trust methodology](docs/trust-methodology.md)
 - [Security model](docs/security/threat-model.md)
 - [Roadmap](docs/roadmap.md)
