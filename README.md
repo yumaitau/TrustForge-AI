@@ -25,7 +25,7 @@ To run the complete containerized web and MCP stack after migrating the database
 docker compose up --build
 ```
 
-The MCP Streamable HTTP sidecar runs on Bun (`npm run mcp:http`) at `http://localhost:3100/mcp` and requires `MCP_API_TOKEN`. The Next.js `dev` / `build` / `start` scripts stay on Node.
+The MCP Streamable HTTP sidecar runs on Bun (`npm run mcp:http`) at `http://localhost:3100/mcp`. `MCP_API_TOKEN` is required in production. The Next.js `dev` / `build` / `start` scripts stay on Node.
 
 ## Quality checks
 

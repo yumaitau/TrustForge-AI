@@ -10,7 +10,7 @@ const localBun = path.join(root, "node_modules", ".bin", "bun");
 const bun = process.env.BUN ?? (existsSync(localBun) ? localBun : "bun");
 const token = "mcp-ci-smoke-token";
 const origin = "http://127.0.0.1:3100";
-const server = spawn(bun, ["--bun", "mcp/http.ts"], { cwd: root, env: { ...process.env, MCP_HOST: "127.0.0.1", MCP_PORT: "3100", MCP_API_TOKEN: token }, stdio: ["ignore", "inherit", "inherit"] });
+const server = spawn(bun, ["--bun", "mcp/http.ts"], { cwd: root, env: { ...process.env, MCP_HOST: "127.0.0.1", MCP_PORT: "3100", MCP_ALLOWED_HOSTS: "localhost,127.0.0.1", MCP_API_TOKEN: token }, stdio: ["ignore", "inherit", "inherit"] });
 
 try {
   for (let attempt = 0; attempt < 50; attempt++) {
