@@ -6,7 +6,7 @@ This repository is being built incrementally. The current milestone establishes 
 
 ## Local development
 
-Requirements: Node.js 20+ for the Next.js app, Bun 1.4+ for the MCP sidecar, npm, and Docker.
+Requirements: Node.js 22.23.4+ (22.x; `nvm use`) for the Next.js app, Bun 1.4+ for the MCP sidecar, npm, and Docker.
 
 ```bash
 cp .env.example .env.local
@@ -26,6 +26,20 @@ docker compose up --build
 ```
 
 The MCP Streamable HTTP sidecar runs on Bun (`npm run mcp:http`) at `http://localhost:3100/mcp`. `MCP_API_TOKEN` is required in production. The Next.js `dev` / `build` / `start` scripts stay on Node.
+
+Node image stages are pinned to 22.23.4 for the [October 2026 security release](https://nodejs.org/en/blog/vulnerability/october-2026-security-releases), including CVE-2026-111497 (Brotli RCE), CVE-2026-105482 (DNS NUL truncation), and CVE-2026-106069 (TLS hostname bypass). CVE-2026-105483 affects Node 24/26, not this Node 22 runtime. Existing deployments require a rebuild and redeploy to pick up the fixes; Justin must approve the redeploy separately from issue #46.
+
+Rebuild and verify the web runtime and the MCP Node dependency stage before deployment:
+
+```bash
+docker build --pull --no-cache -t trustforge-ai:node-22.23.4 .
+docker run --rm --entrypoint node trustforge-ai:node-22.23.4 --version
+docker build --pull --no-cache -f Dockerfile.mcp --target dependencies -t trustforge-mcp-deps:node-22.23.4 .
+docker run --rm --entrypoint node trustforge-mcp-deps:node-22.23.4 --version
+docker build --pull --no-cache -f Dockerfile.mcp -t trustforge-mcp:node-22.23.4 .
+```
+
+Both Node checks should report `v22.23.4`. CI currently selects the latest Node 22 via `setup-node`; its workflow is maintained separately from this patch.
 
 ## Quality checks
 
