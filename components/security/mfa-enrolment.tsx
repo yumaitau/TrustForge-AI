@@ -17,7 +17,7 @@ export function MfaEnrolment({ returnTo = "/settings/security" }: { returnTo?: s
     const result = await authClient.twoFactor.enable({ password: String(formData.get("password")), issuer: "TrustForge AI" });
     setPending(false);
     if (result.error) { setError(result.error.message ?? "Two-factor enrolment could not start."); return; }
-    if (result.data) setEnrolment({ totpURI: result.data.totpURI, backupCodes: result.data.backupCodes });
+    if (result.data && "totpURI" in result.data) setEnrolment({ totpURI: result.data.totpURI, backupCodes: result.data.backupCodes });
   }
 
   async function verify(formData: FormData) {
