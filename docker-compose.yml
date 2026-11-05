@@ -45,7 +45,10 @@ services:
       timeout: 5s
       retries: 10
   object-storage:
-    image: minio/minio:latest
+    # Upstream minio/minio is archived and affected by CVE-2026-122267; use the Chainguard build
+    # (fix landed in RELEASE.2026-09-22T19-25-18Z). Pinned to the multi-arch index digest of
+    # :latest as built 2026-11-04; refresh the digest deliberately when bumping.
+    image: cgr.dev/chainguard/minio:latest@sha256:cee9a8e35885e93f14b3cb32960e5017aff74e2adfb52ba87c65003b0163886b
     command: server /data --console-address :9001
     environment:
       MINIO_ROOT_USER: trustforge
