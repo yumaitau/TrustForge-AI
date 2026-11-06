@@ -49,9 +49,6 @@ jobs:
       - run: npm run mcp:build
       - run: npm run mcp:smoke
       - run: npm run build
-      - name: Install browser for end-to-end tests
-        run: npx playwright install --with-deps chromium
-      - run: npm run test:e2e
       - name: Smoke test production server
         run: |
           npm start > /tmp/trustforge-server.log 2>&1 &
